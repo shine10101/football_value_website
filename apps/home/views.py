@@ -47,7 +47,7 @@ def pages(request):
         return HttpResponse(html_template.render(context, request))
 
 def dataframe_view(request):
-    df = pd.read_csv(fr'\home\pi\valuebetting\predictions.csv')
+    df = pd.read_csv(fr'/home/pi/valuebetting/predictions.csv')
     df = df[['Date', 'Time', 'HomeTeam', 'AwayTeam', 'Max_Value', 'Max_Value_Result']]
     df['Max_Value'] = (df['Max_Value']*100).round(1).astype(str)
     df['Max_Value'] = df['Max_Value'] + '%'
