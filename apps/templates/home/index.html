@@ -1,389 +1,280 @@
 {% extends "layouts/base.html" %}
 
-{% block title %} Dashboard {% endblock %} 
+{% block title %} Dashboard {% endblock %}
 
-<!-- Specific Page CSS goes HERE  -->
-{% block stylesheets %}{% endblock stylesheets %}
+{% block stylesheets %}
+<style>
+    .info-icon { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    .info-icon.icon-primary { background: rgba(29,140,248,0.2); color: #1d8cf8; }
+    .info-icon.icon-success { background: rgba(0,242,195,0.2); color: #00f2c3; }
+    .info-icon.icon-warning { background: rgba(255,141,114,0.2); color: #ff8d72; }
+    .info-icon.icon-info { background: rgba(29,140,248,0.2); color: #1d8cf8; }
+    .info-icon.icon-danger { background: rgba(253,93,147,0.2); color: #fd5d93; }
+    .stat-numbers h3 { margin-bottom: 0; font-size: 1.25rem; font-weight: 600; }
+    .stat-numbers .card-category { margin-bottom: 2px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .top-pick-card { transition: transform 0.2s ease; border-left: 3px solid transparent; }
+    .top-pick-card:hover { transform: translateY(-3px); }
+    .badge-pill { font-size: 0.7rem; padding: 0.35em 0.65em; font-weight: 500; }
+    @media (max-width: 768px) {
+        .table .hide-mobile { display: none; }
+        .table td, .table th { font-size: 0.75rem; padding: 0.4rem; }
+    }
+</style>
+{% endblock stylesheets %}
 
 {% block content %}
 
     <div class="content">
+        <!-- Stat Cards Row -->
         <div class="row">
-            <div class="col-12">
-                <div class="card card-chart">
-                    <div class="card-header ">
+            <div class="col-lg col-md-4 col-sm-6">
+                <div class="card card-stats">
+                    <div class="card-body">
                         <div class="row">
-                            <div class="col-sm-6 text-left">
-                                <h5 class="card-category">Total Shipments</h5>
-                                <h2 class="card-title">Performance</h2>
+                            <div class="col-5 col-md-4">
+                                <div class="info-icon text-center icon-primary">
+                                    <i class="tim-icons icon-chart-bar-32"></i>
+                                </div>
                             </div>
-                            <div class="col-sm-6">
-                                <div class="btn-group btn-group-toggle float-right" data-toggle="buttons">
-                                    <label class="btn btn-sm btn-primary btn-simple active" id="0">
-                                        <input type="radio" name="options" checked>
-                                        <span class="d-none d-sm-block d-md-block d-lg-block d-xl-block">Accounts</span>
-                                        <span class="d-block d-sm-none">
-                        <i class="tim-icons icon-single-02"></i>
-                    </span>
-                                    </label>
-                                    <label class="btn btn-sm btn-primary btn-simple" id="1">
-                                        <input type="radio" class="d-none d-sm-none" name="options">
-                                        <span class="d-none d-sm-block d-md-block d-lg-block d-xl-block">Purchases</span>
-                                        <span class="d-block d-sm-none">
-                        <i class="tim-icons icon-gift-2"></i>
-                    </span>
-                                    </label>
-                                    <label class="btn btn-sm btn-primary btn-simple" id="2">
-                                        <input type="radio" class="d-none" name="options">
-                                        <span class="d-none d-sm-block d-md-block d-lg-block d-xl-block">Sessions</span>
-                                        <span class="d-block d-sm-none">
-                        <i class="tim-icons icon-tap-02"></i>
-                    </span>
-                                    </label>
+                            <div class="col-7 col-md-8">
+                                <div class="stat-numbers text-right">
+                                    <p class="card-category">Predictions</p>
+                                    <h3 class="card-title">{{ total_predictions }}</h3>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="card-body">
-                        <div class="chart-area">
-                            <canvas id="chartBig1"></canvas>
-                        </div>
-                    </div>
                 </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-lg-4">
-                <div class="card card-chart">
-                    <div class="card-header">
-                        <h5 class="card-category">Total Shipments</h5>
-                        <h3 class="card-title"><i class="tim-icons icon-bell-55 text-primary"></i> 763,215</h3>
-                    </div>
+            <div class="col-lg col-md-4 col-sm-6">
+                <div class="card card-stats">
                     <div class="card-body">
-                        <div class="chart-area">
-                            <canvas id="chartLinePurple"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4">
-                <div class="card card-chart">
-                    <div class="card-header">
-                        <h5 class="card-category">Daily Sales</h5>
-                        <h3 class="card-title"><i class="tim-icons icon-delivery-fast text-info"></i> 3,500€</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-area">
-                            <canvas id="CountryChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4">
-                <div class="card card-chart">
-                    <div class="card-header">
-                        <h5 class="card-category">Completed Tasks</h5>
-                        <h3 class="card-title"><i class="tim-icons icon-send text-success"></i> 12,100K</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-area">
-                            <canvas id="chartLineGreen"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-lg-6 col-md-12">
-                <div class="card card-tasks">
-                    <div class="card-header ">
-                        <h6 class="title d-inline">Tasks(5)</h6>
-                        <p class="card-category d-inline">today</p>
-                        <div class="dropdown">
-                            <button type="button" class="btn btn-link dropdown-toggle btn-icon"
-                                    data-toggle="dropdown">
-                                <i class="tim-icons icon-settings-gear-63"></i>
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuLink">
-                                <a class="dropdown-item" href="#pablo">Action</a>
-                                <a class="dropdown-item" href="#pablo">Another action</a>
-                                <a class="dropdown-item" href="#pablo">Something else</a>
+                        <div class="row">
+                            <div class="col-5 col-md-4">
+                                <div class="info-icon text-center icon-success">
+                                    <i class="tim-icons icon-trophy"></i>
+                                </div>
+                            </div>
+                            <div class="col-7 col-md-8">
+                                <div class="stat-numbers text-right">
+                                    <p class="card-category">Value Bets</p>
+                                    <h3 class="card-title">{{ positive_value_count|default:"0" }}</h3>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="card-body ">
-                        <div class="table-full-width table-responsive">
-                            <table class="table">
-                                <tbody>
-                                <tr>
-                                    <td>
-                                        <div class="form-check">
-                                            <label class="form-check-label">
-                                                <input class="form-check-input" type="checkbox" value="">
-                                                <span class="form-check-sign">
-                            <span class="check"></span>
-                            </span>
-                                            </label>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <p class="title">Update the Documentation</p>
-                                        <p class="text-muted">Dwuamish Head, Seattle, WA 8:47 AM</p>
-                                    </td>
-                                    <td class="td-actions text-right">
-                                        <button type="button" rel="tooltip" title="" class="btn btn-link"
-                                                data-original-title="Edit Task">
-                                            <i class="tim-icons icon-pencil"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="form-check">
-                                            <label class="form-check-label">
-                                                <input class="form-check-input" type="checkbox" value="" checked="">
-                                                <span class="form-check-sign">
-                            <span class="check"></span>
-                            </span>
-                                            </label>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <p class="title">GDPR Compliance</p>
-                                        <p class="text-muted">The GDPR is a regulation that requires businesses to
-                                            protect the personal data and privacy of Europe citizens for
-                                            transactions that occur within EU member states.</p>
-                                    </td>
-                                    <td class="td-actions text-right">
-                                        <button type="button" rel="tooltip" title="" class="btn btn-link"
-                                                data-original-title="Edit Task">
-                                            <i class="tim-icons icon-pencil"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="form-check">
-                                            <label class="form-check-label">
-                                                <input class="form-check-input" type="checkbox" value="">
-                                                <span class="form-check-sign">
-                            <span class="check"></span>
-                            </span>
-                                            </label>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <p class="title">Solve the issues</p>
-                                        <p class="text-muted">Fifty percent of all respondents said they would be
-                                            more likely to shop at a company </p>
-                                    </td>
-                                    <td class="td-actions text-right">
-                                        <button type="button" rel="tooltip" title="" class="btn btn-link"
-                                                data-original-title="Edit Task">
-                                            <i class="tim-icons icon-pencil"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="form-check">
-                                            <label class="form-check-label">
-                                                <input class="form-check-input" type="checkbox" value="">
-                                                <span class="form-check-sign">
-                            <span class="check"></span>
-                            </span>
-                                            </label>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <p class="title">Release v2.0.0</p>
-                                        <p class="text-muted">Ra Ave SW, Seattle, WA 98116, SUA 11:19 AM</p>
-                                    </td>
-                                    <td class="td-actions text-right">
-                                        <button type="button" rel="tooltip" title="" class="btn btn-link"
-                                                data-original-title="Edit Task">
-                                            <i class="tim-icons icon-pencil"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="form-check">
-                                            <label class="form-check-label">
-                                                <input class="form-check-input" type="checkbox" value="">
-                                                <span class="form-check-sign">
-                            <span class="check"></span>
-                            </span>
-                                            </label>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <p class="title">Export the processed files</p>
-                                        <p class="text-muted">The report also shows that consumers will not easily
-                                            forgive a company once a breach exposing their personal data
-                                            occurs. </p>
-                                    </td>
-                                    <td class="td-actions text-right">
-                                        <button type="button" rel="tooltip" title="" class="btn btn-link"
-                                                data-original-title="Edit Task">
-                                            <i class="tim-icons icon-pencil"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="form-check">
-                                            <label class="form-check-label">
-                                                <input class="form-check-input" type="checkbox" value="">
-                                                <span class="form-check-sign">
-                            <span class="check"></span>
-                            </span>
-                                            </label>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <p class="title">Arival at export process</p>
-                                        <p class="text-muted">Capitol Hill, Seattle, WA 12:34 AM</p>
-                                    </td>
-                                    <td class="td-actions text-right">
-                                        <button type="button" rel="tooltip" title="" class="btn btn-link"
-                                                data-original-title="Edit Task">
-                                            <i class="tim-icons icon-pencil"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
+                </div>
+            </div>
+            <div class="col-lg col-md-4 col-sm-6">
+                <div class="card card-stats">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-5 col-md-4">
+                                <div class="info-icon text-center icon-warning">
+                                    <i class="tim-icons icon-coins"></i>
+                                </div>
+                            </div>
+                            <div class="col-7 col-md-8">
+                                <div class="stat-numbers text-right">
+                                    <p class="card-category">Avg Value</p>
+                                    <h3 class="card-title">{{ avg_value|default:"0" }}%</h3>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6 col-md-12">
-                <div class="card ">
+            <div class="col-lg col-md-4 col-sm-6">
+                <div class="card card-stats">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-5 col-md-4">
+                                <div class="info-icon text-center icon-info">
+                                    <i class="tim-icons icon-planet"></i>
+                                </div>
+                            </div>
+                            <div class="col-7 col-md-8">
+                                <div class="stat-numbers text-right">
+                                    <p class="card-category">Top League</p>
+                                    <h3 class="card-title" style="font-size: 0.85rem;">{{ top_league|default:"N/A" }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg col-md-4 col-sm-6">
+                <div class="card card-stats">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-5 col-md-4">
+                                <div class="info-icon text-center icon-danger">
+                                    <i class="tim-icons icon-refresh-02" id="refresh-icon"></i>
+                                </div>
+                            </div>
+                            <div class="col-7 col-md-8">
+                                <div class="stat-numbers text-right">
+                                    <p class="card-category">Updated</p>
+                                    <h3 class="card-title" style="font-size: 0.75rem;">{{ last_updated }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer text-right pt-0">
+                        <button id="refresh-btn" class="btn btn-sm btn-link text-info p-0" onclick="refreshPredictions()" {% if refresh_running %}disabled{% endif %}>
+                            <span id="refresh-text">{% if refresh_running %}Refreshing...{% else %}Refresh{% endif %}</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        {% if pred_counts_json %}
+        <div class="row">
+            <div class="col-lg-4 col-md-6">
+                <div class="card card-chart">
                     <div class="card-header">
-                        <h4 class="card-title"> Simple Table</h4>
+                        <h5 class="card-category">Prediction Split</h5>
+                        <h4 class="card-title">Home / Draw / Away</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area" style="height: 220px;">
+                            <canvas id="predBreakdownChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="card card-chart">
+                    <div class="card-header">
+                        <h5 class="card-category">Coverage</h5>
+                        <h4 class="card-title">Predictions by League</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area" style="height: 220px;">
+                            <canvas id="leagueCountChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-12">
+                <div class="card card-chart">
+                    <div class="card-header">
+                        <h5 class="card-category">Value Analysis</h5>
+                        <h4 class="card-title">Avg Value by League</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area" style="height: 220px;">
+                            <canvas id="avgValueChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Top Picks Section -->
+        {% if top_picks %}
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title"><i class="tim-icons icon-trophy text-warning"></i> Top Picks</h4>
+                        <p class="card-category">Highest value predictions</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for pick in top_picks %}
+                            <div class="col-lg col-md-4 col-sm-6 mb-3">
+                                <div class="card mb-0 top-pick-card" style="background: rgba(255,255,255,0.04); border-left-color: {% if pick.Max_Value_Raw > 0.15 %}#00f2c3{% elif pick.Max_Value_Raw > 0 %}#1d8cf8{% else %}#fd5d93{% endif %};">
+                                    <div class="card-body p-3">
+                                        <p class="card-category mb-1" style="font-size: 0.7rem;">{{ pick.LeagueName|default:pick.Div }} &middot; {{ pick.Date }}</p>
+                                        <h5 class="card-title mb-2" style="font-size: 0.9rem; line-height: 1.3;">
+                                            {{ pick.HomeTeam }} <span class="text-muted">vs</span> {{ pick.AwayTeam }}
+                                        </h5>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="badge badge-pill badge-{% if pick.Pred_FTR == 'H' %}primary{% elif pick.Pred_FTR == 'D' %}warning{% else %}info{% endif %}">
+                                                {% if pick.Pred_FTR == 'H' %}HOME{% elif pick.Pred_FTR == 'D' %}DRAW{% else %}AWAY{% endif %}
+                                            </span>
+                                            <span class="badge badge-pill badge-{% if pick.Max_Value_Raw > 0 %}success{% else %}danger{% endif %}" style="font-size: 0.8rem;">
+                                                {{ pick.Max_Value }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Predictions Table -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Recent Predictions</h4>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table tablesorter " id="">
-                                <thead class=" text-primary">
-                                <tr>
-                                    <th>
-                                        Name
-                                    </th>
-                                    <th>
-                                        Country
-                                    </th>
-                                    <th>
-                                        City
-                                    </th>
-                                    <th class="text-center">
-                                        Salary
-                                    </th>
-                                </tr>
+                            <table class="table tablesorter">
+                                <thead class="text-primary">
+                                    <tr>
+                                        <th>League</th>
+                                        <th>Date</th>
+                                        <th class="hide-mobile">Time</th>
+                                        <th>Home Team</th>
+                                        <th>Away Team</th>
+                                        <th>Home %</th>
+                                        <th class="hide-mobile">Draw %</th>
+                                        <th>Away %</th>
+                                        <th>Prediction</th>
+                                        <th>Value</th>
+                                        <th class="hide-mobile">Best Bet</th>
+                                    </tr>
                                 </thead>
                                 <tbody>
-                                <tr>
-                                    <td>
-                                        Dakota Rice
-                                    </td>
-                                    <td>
-                                        Niger
-                                    </td>
-                                    <td>
-                                        Oud-Turnhout
-                                    </td>
-                                    <td class="text-center">
-                                        $36,738
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        Minerva Hooper
-                                    </td>
-                                    <td>
-                                        Curaçao
-                                    </td>
-                                    <td>
-                                        Sinaai-Waas
-                                    </td>
-                                    <td class="text-center">
-                                        $23,789
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        Sage Rodriguez
-                                    </td>
-                                    <td>
-                                        Netherlands
-                                    </td>
-                                    <td>
-                                        Baileux
-                                    </td>
-                                    <td class="text-center">
-                                        $56,142
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        Philip Chaney
-                                    </td>
-                                    <td>
-                                        Korea, South
-                                    </td>
-                                    <td>
-                                        Overland Park
-                                    </td>
-                                    <td class="text-center">
-                                        $38,735
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        Doris Greene
-                                    </td>
-                                    <td>
-                                        Malawi
-                                    </td>
-                                    <td>
-                                        Feldkirchen in Kärnten
-                                    </td>
-                                    <td class="text-center">
-                                        $63,542
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        Mason Porter
-                                    </td>
-                                    <td>
-                                        Chile
-                                    </td>
-                                    <td>
-                                        Gloucester
-                                    </td>
-                                    <td class="text-center">
-                                        $78,615
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        Jon Porter
-                                    </td>
-                                    <td>
-                                        Portugal
-                                    </td>
-                                    <td>
-                                        Gloucester
-                                    </td>
-                                    <td class="text-center">
-                                        $98,615
-                                    </td>
-                                </tr>
+                                    {% for item in recent_predictions %}
+                                        <tr {% if item.Max_Value_Raw > 0.15 %}style="background: rgba(0, 242, 195, 0.06);"{% endif %}>
+                                            <td>{{ item.LeagueName|default:item.Div }}</td>
+                                            <td>{{ item.Date }}</td>
+                                            <td class="hide-mobile">{{ item.Time }}</td>
+                                            <td>{{ item.HomeTeam }}</td>
+                                            <td>{{ item.AwayTeam }}</td>
+                                            <td>{{ item.HWin }}</td>
+                                            <td class="hide-mobile">{{ item.Draw }}</td>
+                                            <td>{{ item.AWin }}</td>
+                                            <td>
+                                                <span class="badge badge-pill badge-{% if item.Pred_FTR == 'H' %}primary{% elif item.Pred_FTR == 'D' %}warning{% else %}info{% endif %}">
+                                                    {% if item.Pred_FTR == 'H' %}HOME{% elif item.Pred_FTR == 'D' %}DRAW{% else %}AWAY{% endif %}
+                                                </span>
+                                            </td>
+                                            <td class="{% if item.Max_Value_Raw > 0 %}text-success{% else %}text-danger{% endif %}" style="font-weight: 600;">
+                                                {{ item.Max_Value }}
+                                            </td>
+                                            <td class="hide-mobile">
+                                                <span class="badge badge-pill" style="background: rgba(255,255,255,0.1); font-size: 0.68rem;">
+                                                    {{ item.Max_Value_Result }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="11" class="text-center">No predictions available. Click "Refresh" to generate.</td>
+                                        </tr>
+                                    {% endfor %}
                                 </tbody>
                             </table>
                         </div>
+                        {% if total_predictions > 10 %}
+                        <div class="text-right mt-2">
+                            <a href="/tables.html" class="btn btn-primary btn-sm">View all {{ total_predictions }} predictions &rarr;</a>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -392,15 +283,152 @@
 
 {% endblock content %}
 
-<!-- Specific Page JS goes HERE  -->
 {% block javascripts %}
-
 <script>
-    $(document).ready(function () {
-        // Javascript method's body can be found in assets/js/demos.js
-        demo.initDashboardPageCharts();
+function refreshPredictions() {
+    var btn = document.getElementById('refresh-btn');
+    var icon = document.getElementById('refresh-icon');
+    var text = document.getElementById('refresh-text');
 
+    btn.disabled = true;
+    icon.style.animation = 'spin 1s linear infinite';
+    text.textContent = 'Refreshing...';
+
+    fetch('/api/refresh/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(data) {
+        if (data.status === 'started' || data.status === 'already_running') {
+            pollStatus();
+        }
+    })
+    .catch(function(err) {
+        btn.disabled = false;
+        icon.style.animation = '';
+        text.textContent = 'Refresh';
+        alert('Failed to start refresh: ' + err);
     });
-</script>
+}
 
+function pollStatus() {
+    var interval = setInterval(function() {
+        fetch('/api/refresh/status/')
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (!data.running) {
+                clearInterval(interval);
+                if (data.error) {
+                    alert('Refresh failed: ' + data.error);
+                    var btn = document.getElementById('refresh-btn');
+                    btn.disabled = false;
+                    document.getElementById('refresh-icon').style.animation = '';
+                    document.getElementById('refresh-text').textContent = 'Refresh';
+                } else {
+                    location.reload();
+                }
+            }
+        });
+    }, 3000);
+}
+
+{% if refresh_running %}
+pollStatus();
+{% endif %}
+
+// Charts
+{% if pred_counts_json %}
+(function() {
+    var predCounts = JSON.parse('{{ pred_counts_json|escapejs }}');
+    var leagueLabels = JSON.parse('{{ league_labels_json|escapejs }}');
+    var leagueValues = JSON.parse('{{ league_values_json|escapejs }}');
+    var avgValLabels = JSON.parse('{{ avg_val_labels_json|escapejs }}');
+    var avgValValues = JSON.parse('{{ avg_val_values_json|escapejs }}');
+
+    Chart.defaults.global.defaultFontColor = 'rgba(255,255,255,0.7)';
+
+    // Prediction Breakdown - Doughnut
+    var ctx1 = document.getElementById('predBreakdownChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'doughnut',
+        data: {
+            labels: ['Home', 'Draw', 'Away'],
+            datasets: [{
+                data: [predCounts['H'] || 0, predCounts['D'] || 0, predCounts['A'] || 0],
+                backgroundColor: ['#1d8cf8', '#ff8d72', '#00f2c3'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            legend: { position: 'bottom', labels: { fontColor: 'rgba(255,255,255,0.7)', padding: 12, boxWidth: 12 } },
+            cutoutPercentage: 60
+        }
+    });
+
+    // Predictions per League - Horizontal Bar
+    var ctx2 = document.getElementById('leagueCountChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'horizontalBar',
+        data: {
+            labels: leagueLabels,
+            datasets: [{
+                label: 'Predictions',
+                data: leagueValues,
+                backgroundColor: 'rgba(29, 140, 248, 0.5)',
+                borderColor: '#1d8cf8',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            legend: { display: false },
+            scales: {
+                xAxes: [{ ticks: { beginAtZero: true, fontColor: 'rgba(255,255,255,0.4)' }, gridLines: { color: 'rgba(255,255,255,0.08)' } }],
+                yAxes: [{ ticks: { fontColor: 'rgba(255,255,255,0.7)', fontSize: 10 }, gridLines: { display: false } }]
+            }
+        }
+    });
+
+    // Average Value per League - Bar
+    var barColors = avgValValues.map(function(v) { return v > 0 ? 'rgba(0, 242, 195, 0.5)' : 'rgba(253, 93, 147, 0.5)'; });
+    var barBorders = avgValValues.map(function(v) { return v > 0 ? '#00f2c3' : '#fd5d93'; });
+    var ctx3 = document.getElementById('avgValueChart').getContext('2d');
+    new Chart(ctx3, {
+        type: 'bar',
+        data: {
+            labels: avgValLabels,
+            datasets: [{
+                label: 'Avg Value %',
+                data: avgValValues,
+                backgroundColor: barColors,
+                borderColor: barBorders,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            legend: { display: false },
+            scales: {
+                xAxes: [{ ticks: { fontColor: 'rgba(255,255,255,0.4)', maxRotation: 45, fontSize: 10 }, gridLines: { display: false } }],
+                yAxes: [{ ticks: { fontColor: 'rgba(255,255,255,0.4)', callback: function(v) { return v + '%'; } }, gridLines: { color: 'rgba(255,255,255,0.08)' } }]
+            }
+        }
+    });
+})();
+{% endif %}
+</script>
+<style>
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+</style>
 {% endblock javascripts %}

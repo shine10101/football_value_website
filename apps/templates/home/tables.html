@@ -1,42 +1,144 @@
 {% extends "layouts/base.html" %}
 
-{% block title %} Tables {% endblock %} 
+{% block title %} Value Table {% endblock %}
 
-<!-- Specific Page CSS goes HERE  -->
-{% block stylesheets %}{% endblock stylesheets %}
+{% block stylesheets %}
+<style>
+    .badge-pill { font-size: 0.7rem; padding: 0.35em 0.65em; font-weight: 500; }
+    @media (max-width: 768px) {
+        .table .hide-mobile { display: none; }
+        .table td, .table th { font-size: 0.75rem; padding: 0.4rem; white-space: nowrap; }
+    }
+</style>
+{% endblock stylesheets %}
 
 {% block content %}
 
   <div class="content">
     <div class="row">
       <div class="col-md-12">
-        <div class="card ">
-          <div class="card-header">
-            <h4 class="card-title"> Value Table</h4>
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+              <h4 class="card-title mb-0">
+                Value Table
+                {% if league_filter %}
+                  <small class="text-muted">
+                    &mdash; {{ league_filter }}
+                    <a href="/tables.html" class="text-info ml-2" style="font-size: 0.75rem;">clear filter</a>
+                  </small>
+                {% endif %}
+              </h4>
+            </div>
+            <div class="d-flex align-items-center mt-2 mt-md-0">
+              <label class="mr-2 mb-0 text-muted" style="font-size: 0.8rem;">League:</label>
+              <select id="league-filter" class="form-control form-control-sm"
+                      style="width: auto; background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2);"
+                      onchange="filterLeague(this.value)">
+                <option value="">All Leagues</option>
+                {% for opt in league_options %}
+                  <option value="{{ opt.code }}" {% if league_filter == opt.code %}selected{% endif %}>
+                    {{ opt.name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
           </div>
           <div class="card-body">
-              <table class="table tablesorter " id="">
-                <thead class=" text-primary">
+            <div class="table-responsive">
+              <table class="table tablesorter">
+                <thead class="text-primary">
                   <tr>
+                    <th>League</th>
                     <th>Date</th>
-                    <th>Time</th>
+                    <th class="hide-mobile">Time</th>
                     <th>Home Team</th>
                     <th>Away Team</th>
-                    <th>Max Value</th>
-                    <th>Max Value Result</th>
+                    <th>Score</th>
+                    <th>Home %</th>
+                    <th class="hide-mobile">Draw %</th>
+                    <th>Away %</th>
+                    <th>Prediction</th>
+                    <th>Value</th>
+                    <th class="hide-mobile">Best Bet</th>
                   </tr>
+                </thead>
+                <tbody>
                     {% for item in data %}
-                        <tr>
+                        <tr {% if item.Max_Value_Raw > 0.15 %}style="background: rgba(0, 242, 195, 0.06);"{% endif %}>
+                            <td>{{ item.LeagueName|default:item.Div }}</td>
                             <td>{{ item.Date }}</td>
-                            <td>{{ item.Time }}</td>
+                            <td class="hide-mobile">{{ item.Time }}</td>
                             <td>{{ item.HomeTeam }}</td>
                             <td>{{ item.AwayTeam }}</td>
-                            <td>{{ item.Max_Value }}</td>
-                            <td>{{ item.Max_Value_Result }}</td>
+                            <td class="text-muted">{{ item.Pred_FTHG|default:"-" }} - {{ item.Pred_FTAG|default:"-" }}</td>
+                            <td>{{ item.HWin }}</td>
+                            <td class="hide-mobile">{{ item.Draw }}</td>
+                            <td>{{ item.AWin }}</td>
+                            <td>
+                                <span class="badge badge-pill badge-{% if item.Pred_FTR == 'H' %}primary{% elif item.Pred_FTR == 'D' %}warning{% else %}info{% endif %}">
+                                    {% if item.Pred_FTR == 'H' %}HOME{% elif item.Pred_FTR == 'D' %}DRAW{% else %}AWAY{% endif %}
+                                </span>
+                            </td>
+                            <td class="{% if item.Max_Value_Raw > 0 %}text-success{% else %}text-danger{% endif %}" style="font-weight: 600;">
+                                {{ item.Max_Value }}
+                            </td>
+                            <td class="hide-mobile">
+                                <span class="badge badge-pill" style="background: rgba(255,255,255,0.1); font-size: 0.68rem;">
+                                    {{ item.Max_Value_Result }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="12" class="text-center">No predictions available.</td>
                         </tr>
                     {% endfor %}
+                </tbody>
               </table>
             </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap">
+              <p class="text-muted mb-0" style="font-size: 0.85rem;">
+                {% if data.has_other_pages %}
+                  Page {{ data.number }} of {{ data.paginator.num_pages }}
+                  ({{ total_filtered }} total)
+                {% else %}
+                  {{ total_filtered }} prediction{{ total_filtered|pluralize }}
+                {% endif %}
+              </p>
+
+              {% if data.has_other_pages %}
+              <nav class="mt-2 mt-md-0">
+                <ul class="pagination justify-content-center mb-0">
+                  {% if data.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ data.previous_page_number }}{% if league_filter %}&league={{ league_filter }}{% endif %}">&laquo;</a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+                  {% endif %}
+
+                  {% for num in data.paginator.page_range %}
+                    {% if data.number == num %}
+                      <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > data.number|add:"-3" and num < data.number|add:"3" %}
+                      <li class="page-item"><a class="page-link" href="?page={{ num }}{% if league_filter %}&league={{ league_filter }}{% endif %}">{{ num }}</a></li>
+                    {% endif %}
+                  {% endfor %}
+
+                  {% if data.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ data.next_page_number }}{% if league_filter %}&league={{ league_filter }}{% endif %}">&raquo;</a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+                  {% endif %}
+                </ul>
+              </nav>
+              {% endif %}
+            </div>
+
           </div>
         </div>
       </div>
@@ -45,5 +147,12 @@
 
 {% endblock content %}
 
-<!-- Specific Page JS goes HERE  -->
-{% block javascripts %}{% endblock javascripts %}
+{% block javascripts %}
+<script>
+function filterLeague(val) {
+    var url = '/tables.html';
+    if (val) url += '?league=' + encodeURIComponent(val);
+    window.location.href = url;
+}
+</script>
+{% endblock javascripts %}

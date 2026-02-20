@@ -5,32 +5,34 @@
       -->
         <div class="sidebar-wrapper">
             <div class="logo">
-                <a href="javascript:void(0)" class="simple-text logo-mini">
-                    CT
+                <a href="/" class="simple-text logo-mini">
+                    FV
                 </a>
-                <a href="javascript:void(0)" class="simple-text logo-normal">
-                    Creative Tim
+                <a href="/" class="simple-text logo-normal">
+                    Football Value
                 </a>
             </div>
             <ul class="nav">
-                <li class="{% if 'user' in segment %} active {% endif %}">
-                    <a href="/user.html">
-                        <i class="tim-icons icon-single-02"></i>
-                        <p>User Profile</p>
+                <li class="{% if 'index' in segment %} active {% endif %}">
+                    <a href="/">
+                        <i class="tim-icons icon-chart-pie-36"></i>
+                        <p>Dashboard</p>
                     </a>
                 </li>
                 <li class="{% if 'tables' in segment %} active {% endif %}">
                     <a href="/tables.html">
                         <i class="tim-icons icon-puzzle-10"></i>
-                        <p>Table List</p>
+                        <p>Value Table</p>
                     </a>
                 </li>
                 <li>
-                <li>
-                    <a href="{% url 'login' %}">
-                        <i class="tim-icons icon-button-power"></i>
-                        <p>Logout</p>
-                    </a>
+                    <form method="post" action="{% url 'logout' %}" style="display:inline; width:100%;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-link" style="padding: 10px 15px; width:100%; text-align:left; color: rgba(255,255,255,0.8);">
+                            <i class="tim-icons icon-button-power"></i>
+                            <p>Logout</p>
+                        </button>
+                    </form>
                 </li>
             </ul>
         </div>
