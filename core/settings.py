@@ -26,15 +26,29 @@ DEBUG = env('DEBUG')
 # Assets Management
 ASSETS_ROOT = os.getenv('ASSETS_ROOT', '/static/assets')
 
+# Persistent data directory (Docker volume mount point)
+DATA_DIR = env('DATA_DIR', default=BASE_DIR)
+
 # Predictions CSV path
 _csv_path = env('PREDICTIONS_CSV', default='predictions.csv')
 if not os.path.isabs(_csv_path):
-    _csv_path = os.path.join(BASE_DIR, _csv_path)
+    _csv_path = os.path.join(DATA_DIR, _csv_path)
 PREDICTIONS_CSV = _csv_path
 
 # load production server from .env
-ALLOWED_HOSTS        = ['localhost', 'localhost:85', '127.0.0.1', env('SERVER', default='127.0.0.1'),'192.168.0.47' ]
-CSRF_TRUSTED_ORIGINS = ['http://localhost:85', 'http://127.0.0.1', 'https://' + env('SERVER', default='127.0.0.1') ]
+DOMAIN = env('DOMAIN', default='')
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+CSRF_TRUSTED_ORIGINS = ['http://localhost']
+
+if DOMAIN:
+    ALLOWED_HOSTS.append(DOMAIN)
+    CSRF_TRUSTED_ORIGINS.append('https://' + DOMAIN)
+
+# Legacy SERVER variable support
+_server = env('SERVER', default='')
+if _server:
+    ALLOWED_HOSTS.append(_server)
+    CSRF_TRUSTED_ORIGINS.append('https://' + _server)
 
 # Application definition
 
@@ -103,7 +117,7 @@ else:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': 'db.sqlite3',
+            'NAME': os.path.join(DATA_DIR, 'db.sqlite3'),
         }
     }
 

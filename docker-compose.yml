@@ -1,28 +1,23 @@
-version: '3.8'
 services:
-  appseed-app:
-    container_name: appseed_app
+  app:
+    container_name: football_value
     restart: always
     env_file: .env
     build: .
-    networks:
-      - db_network
-      - web_network
-  nginx:
-    container_name: nginx
-    restart: always
-    image: "nginx:latest"
-    ports:
-      - "5085:5085"
     volumes:
-      - ./nginx:/etc/nginx/conf.d
+      - app-data:/app/data
     networks:
-      - web_network
-    depends_on: 
-      - appseed-app
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.football.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.football.entrypoints=websecure"
+      - "traefik.http.routers.football.tls.certresolver=letsencrypt"
+      - "traefik.http.services.football.loadbalancer.server.port=5005"
+
+volumes:
+  app-data:
+
 networks:
-  db_network:
-    driver: bridge
-  web_network:
-    driver: bridge
- 
+  traefik-public:
+    external: true
