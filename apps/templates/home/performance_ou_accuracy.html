@@ -283,6 +283,8 @@
                                         <th>Away</th>
                                         <th>Over %</th>
                                         <th class="hide-mobile">Under %</th>
+                                        <th class="hide-mobile">O Odds</th>
+                                        <th class="hide-mobile">U Odds</th>
                                         <th>Predicted</th>
                                         <th>Actual Score</th>
                                         <th>Total Goals</th>
@@ -299,6 +301,8 @@
                                         <td>{{ pred.away_team }}</td>
                                         <td>{% widthratio pred.over25 1 100 %}%</td>
                                         <td class="hide-mobile">{% widthratio pred.under25 1 100 %}%</td>
+                                        <td class="hide-mobile">{% if pred.odds_over25 %}{{ pred.odds_over25|floatformat:2 }}{% else %}-{% endif %}</td>
+                                        <td class="hide-mobile">{% if pred.odds_under25 %}{{ pred.odds_under25|floatformat:2 }}{% else %}-{% endif %}</td>
                                         <td>
                                             <span class="badge badge-pill badge-{% if pred.over25 > 0.5 %}success{% else %}info{% endif %}">
                                                 {% if pred.over25 > 0.5 %}OVER{% else %}UNDER{% endif %}
@@ -317,7 +321,7 @@
                                     {% endwith %}
                                     {% empty %}
                                     <tr>
-                                        <td colspan="10" class="text-center">No resolved predictions yet.</td>
+                                        <td colspan="12" class="text-center">No resolved predictions yet.</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
