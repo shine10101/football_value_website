@@ -9,6 +9,24 @@
         .table .hide-mobile { display: none; }
         .table td, .table th { font-size: 0.75rem; padding: 0.4rem; white-space: nowrap; }
     }
+    .market-tabs .btn {
+        font-size: 0.8rem;
+        padding: 0.3rem 0.75rem;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,0.2);
+        color: rgba(255,255,255,0.6);
+        background: transparent;
+        margin-right: 0.25rem;
+    }
+    .market-tabs .btn.active {
+        background: rgba(225, 78, 202, 0.3);
+        border-color: #e14eca;
+        color: #fff;
+    }
+    .market-tabs .btn:hover:not(.active) {
+        background: rgba(255,255,255,0.05);
+        color: rgba(255,255,255,0.8);
+    }
 </style>
 {% endblock stylesheets %}
 
@@ -25,7 +43,7 @@
                 {% if league_filter %}
                   <small class="text-muted">
                     &mdash; {{ league_filter }}
-                    <a href="/tables.html" class="text-info ml-2" style="font-size: 0.75rem;">clear filter</a>
+                    <a href="/tables.html{% if market != 'result' %}?market={{ market }}{% endif %}" class="text-info ml-2" style="font-size: 0.75rem;">clear filter</a>
                   </small>
                 {% endif %}
               </h4>
@@ -44,7 +62,15 @@
               </select>
             </div>
           </div>
+
           <div class="card-body">
+            <!-- Market toggle tabs -->
+            <div class="market-tabs mb-3">
+              <button class="btn {% if market == 'result' %}active{% endif %}" onclick="switchMarket('result')">Match Result</button>
+              <button class="btn {% if market == 'btts' %}active{% endif %}" onclick="switchMarket('btts')">BTTS</button>
+              <button class="btn {% if market == 'overunder' %}active{% endif %}" onclick="switchMarket('overunder')">Over/Under 2.5</button>
+            </div>
+
             <div class="table-responsive">
               <table class="table tablesorter">
                 <thead class="text-primary">
@@ -55,43 +81,84 @@
                     <th>Home Team</th>
                     <th>Away Team</th>
                     <th>Score</th>
-                    <th>Home %</th>
-                    <th class="hide-mobile">Draw %</th>
-                    <th>Away %</th>
-                    <th>Prediction</th>
-                    <th>Value</th>
-                    <th class="hide-mobile">Best Bet</th>
+
+                    {% if market == 'result' %}
+                      <th>Home %</th>
+                      <th class="hide-mobile">Draw %</th>
+                      <th>Away %</th>
+                      <th>Prediction</th>
+                      <th>Value</th>
+                      <th class="hide-mobile">Best Bet</th>
+                      <th class="hide-mobile">Odds</th>
+                    {% elif market == 'btts' %}
+                      <th>BTTS Yes %</th>
+                      <th>BTTS No %</th>
+                    {% elif market == 'overunder' %}
+                      <th>Over 2.5 %</th>
+                      <th>Under 2.5 %</th>
+                      <th>Value</th>
+                      <th class="hide-mobile">Best Bet</th>
+                      <th class="hide-mobile">Odds</th>
+                    {% endif %}
                   </tr>
                 </thead>
                 <tbody>
                     {% for item in data %}
+                        {% if market == 'result' %}
                         <tr {% if item.Max_Value_Raw > 0.15 %}style="background: rgba(0, 242, 195, 0.06);"{% endif %}>
+                        {% elif market == 'overunder' %}
+                        <tr {% if item.OU_Max_Value_Raw > 0.15 %}style="background: rgba(0, 242, 195, 0.06);"{% endif %}>
+                        {% else %}
+                        <tr>
+                        {% endif %}
                             <td>{{ item.LeagueName|default:item.Div }}</td>
                             <td>{{ item.Date }}</td>
                             <td class="hide-mobile">{{ item.Time }}</td>
                             <td>{{ item.HomeTeam }}</td>
                             <td>{{ item.AwayTeam }}</td>
                             <td class="text-muted">{{ item.Pred_FTHG|default:"-" }} - {{ item.Pred_FTAG|default:"-" }}</td>
-                            <td>{{ item.HWin }}</td>
-                            <td class="hide-mobile">{{ item.Draw }}</td>
-                            <td>{{ item.AWin }}</td>
-                            <td>
-                                <span class="badge badge-pill badge-{% if item.Pred_FTR == 'H' %}primary{% elif item.Pred_FTR == 'D' %}warning{% else %}info{% endif %}">
-                                    {% if item.Pred_FTR == 'H' %}HOME{% elif item.Pred_FTR == 'D' %}DRAW{% else %}AWAY{% endif %}
-                                </span>
-                            </td>
-                            <td class="{% if item.Max_Value_Raw > 0 %}text-success{% else %}text-danger{% endif %}" style="font-weight: 600;">
-                                {{ item.Max_Value }}
-                            </td>
-                            <td class="hide-mobile">
-                                <span class="badge badge-pill" style="background: rgba(255,255,255,0.1); font-size: 0.68rem;">
-                                    {{ item.Max_Value_Result }}
-                                </span>
-                            </td>
+
+                            {% if market == 'result' %}
+                              <td>{{ item.HWin }}</td>
+                              <td class="hide-mobile">{{ item.Draw }}</td>
+                              <td>{{ item.AWin }}</td>
+                              <td>
+                                  <span class="badge badge-pill badge-{% if item.Pred_FTR == 'H' %}primary{% elif item.Pred_FTR == 'D' %}warning{% else %}info{% endif %}">
+                                      {% if item.Pred_FTR == 'H' %}HOME{% elif item.Pred_FTR == 'D' %}DRAW{% else %}AWAY{% endif %}
+                                  </span>
+                              </td>
+                              <td class="{% if item.Max_Value_Raw > 0 %}text-success{% else %}text-danger{% endif %}" style="font-weight: 600;">
+                                  {{ item.Max_Value }}
+                                  {% if item.is_confidence_pick %}<i class="tim-icons icon-check-2" style="color: #ba54f5; font-size: 0.7rem; margin-left: 3px;" title="Confidence Pick"></i>{% endif %}
+                              </td>
+                              <td class="hide-mobile">
+                                  <span class="badge badge-pill" style="background: rgba(255,255,255,0.1); font-size: 0.68rem;">
+                                      {{ item.Max_Value_Result }}
+                                  </span>
+                              </td>
+                              <td class="hide-mobile text-muted">{{ item.Best_Odds|default:"-" }}</td>
+
+                            {% elif market == 'btts' %}
+                              <td style="font-weight: 600;">{{ item.BTTS_Yes|default:"-" }}</td>
+                              <td class="text-muted">{{ item.BTTS_No|default:"-" }}</td>
+
+                            {% elif market == 'overunder' %}
+                              <td>{{ item.Over25|default:"-" }}</td>
+                              <td>{{ item.Under25|default:"-" }}</td>
+                              <td class="{% if item.OU_Max_Value_Raw > 0 %}text-success{% else %}text-danger{% endif %}" style="font-weight: 600;">
+                                  {{ item.OU_Max_Value|default:"-" }}
+                              </td>
+                              <td class="hide-mobile">
+                                  <span class="badge badge-pill" style="background: rgba(255,255,255,0.1); font-size: 0.68rem;">
+                                      {{ item.OU_Best_Bet|default:"-" }}
+                                  </span>
+                              </td>
+                              <td class="hide-mobile text-muted">{{ item.OU_Best_Odds|default:"-" }}</td>
+                            {% endif %}
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="12" class="text-center">No predictions available.</td>
+                            <td colspan="13" class="text-center">No predictions available.</td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -113,7 +180,7 @@
                 <ul class="pagination justify-content-center mb-0">
                   {% if data.has_previous %}
                     <li class="page-item">
-                      <a class="page-link" href="?page={{ data.previous_page_number }}{% if league_filter %}&league={{ league_filter }}{% endif %}">&laquo;</a>
+                      <a class="page-link" href="?page={{ data.previous_page_number }}{% if league_filter %}&league={{ league_filter }}{% endif %}&market={{ market }}">&laquo;</a>
                     </li>
                   {% else %}
                     <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
@@ -123,13 +190,13 @@
                     {% if data.number == num %}
                       <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                     {% elif num > data.number|add:"-3" and num < data.number|add:"3" %}
-                      <li class="page-item"><a class="page-link" href="?page={{ num }}{% if league_filter %}&league={{ league_filter }}{% endif %}">{{ num }}</a></li>
+                      <li class="page-item"><a class="page-link" href="?page={{ num }}{% if league_filter %}&league={{ league_filter }}{% endif %}&market={{ market }}">{{ num }}</a></li>
                     {% endif %}
                   {% endfor %}
 
                   {% if data.has_next %}
                     <li class="page-item">
-                      <a class="page-link" href="?page={{ data.next_page_number }}{% if league_filter %}&league={{ league_filter }}{% endif %}">&raquo;</a>
+                      <a class="page-link" href="?page={{ data.next_page_number }}{% if league_filter %}&league={{ league_filter }}{% endif %}&market={{ market }}">&raquo;</a>
                     </li>
                   {% else %}
                     <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
@@ -149,10 +216,22 @@
 
 {% block javascripts %}
 <script>
+function switchMarket(market) {
+    var params = new URLSearchParams(window.location.search);
+    params.set('market', market);
+    params.delete('page');  // Reset to page 1 on market switch
+    window.location.href = '/tables.html?' + params.toString();
+}
+
 function filterLeague(val) {
-    var url = '/tables.html';
-    if (val) url += '?league=' + encodeURIComponent(val);
-    window.location.href = url;
+    var params = new URLSearchParams(window.location.search);
+    if (val) {
+        params.set('league', val);
+    } else {
+        params.delete('league');
+    }
+    params.delete('page');
+    window.location.href = '/tables.html?' + params.toString();
 }
 </script>
 {% endblock javascripts %}

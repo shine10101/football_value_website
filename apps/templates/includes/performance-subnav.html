@@ -1,26 +1,63 @@
 <div class="row">
     <div class="col-12">
         <div style="background: rgba(255,255,255,0.04); border-radius: 0.4285rem; padding: 8px 15px; margin-bottom: 20px;">
-            <ul class="nav nav-pills" style="margin: 0;">
+            <ul class="nav nav-pills flex-wrap" style="margin: 0;">
+                <li class="nav-item" style="margin-right: 4px;">
+                    <span style="font-size: 0.68rem; color: rgba(255,255,255,0.35); padding: 6px 4px 6px 8px; display: inline-block;">1X2</span>
+                </li>
                 <li class="nav-item">
                     <a class="nav-link {% if segment == 'performance_accuracy' %}active{% endif %}"
                        href="{% url 'performance_accuracy' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
-                       style="font-size: 0.82rem; padding: 6px 16px;">
-                        <i class="tim-icons icon-chart-bar-32 mr-1"></i> Model Accuracy
+                       style="font-size: 0.82rem; padding: 6px 12px;">
+                        <i class="tim-icons icon-chart-bar-32 mr-1"></i> Accuracy
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if segment == 'performance_financial' %}active{% endif %}"
                        href="{% url 'performance_financial' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
-                       style="font-size: 0.82rem; padding: 6px 16px;">
-                        <i class="tim-icons icon-money-coins mr-1"></i> Financial Analysis
+                       style="font-size: 0.82rem; padding: 6px 12px;">
+                        <i class="tim-icons icon-money-coins mr-1"></i> Financial
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if segment == 'performance_strategies' %}active{% endif %}"
                        href="{% url 'performance_strategies' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
-                       style="font-size: 0.82rem; padding: 6px 16px;">
-                        <i class="tim-icons icon-puzzle-10 mr-1"></i> Betting Strategies
+                       style="font-size: 0.82rem; padding: 6px 12px;">
+                        <i class="tim-icons icon-puzzle-10 mr-1"></i> Strategies
+                    </a>
+                </li>
+                <li class="nav-item" style="margin-left: 8px; margin-right: 4px; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 8px;">
+                    <span style="font-size: 0.68rem; color: rgba(255,255,255,0.35); padding: 6px 4px; display: inline-block;">BTTS</span>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if segment == 'performance_btts_accuracy' %}active{% endif %}"
+                       href="{% url 'performance_btts_accuracy' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
+                       style="font-size: 0.82rem; padding: 6px 12px;">
+                        <i class="tim-icons icon-chart-bar-32 mr-1"></i> Accuracy
+                    </a>
+                </li>
+                <li class="nav-item" style="margin-left: 8px; margin-right: 4px; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 8px;">
+                    <span style="font-size: 0.68rem; color: rgba(255,255,255,0.35); padding: 6px 4px; display: inline-block;">O/U</span>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if segment == 'performance_ou_accuracy' %}active{% endif %}"
+                       href="{% url 'performance_ou_accuracy' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
+                       style="font-size: 0.82rem; padding: 6px 12px;">
+                        <i class="tim-icons icon-chart-bar-32 mr-1"></i> Accuracy
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if segment == 'performance_ou_financial' %}active{% endif %}"
+                       href="{% url 'performance_ou_financial' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
+                       style="font-size: 0.82rem; padding: 6px 12px;">
+                        <i class="tim-icons icon-money-coins mr-1"></i> Financial
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if segment == 'performance_ou_strategies' %}active{% endif %}"
+                       href="{% url 'performance_ou_strategies' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
+                       style="font-size: 0.82rem; padding: 6px 12px;">
+                        <i class="tim-icons icon-puzzle-10 mr-1"></i> Strategies
                     </a>
                 </li>
             </ul>

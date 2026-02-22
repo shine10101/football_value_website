@@ -23,6 +23,12 @@ class Prediction(models.Model):
     pred_ftr = models.CharField(max_length=1)
     pred_fthg = models.FloatField()
     pred_ftag = models.FloatField()
+    btts_yes = models.FloatField(default=0.0)
+    btts_no = models.FloatField(default=0.0)
+    over25 = models.FloatField(default=0.0)
+    under25 = models.FloatField(default=0.0)
+    over25_value = models.FloatField(null=True, blank=True)
+    under25_value = models.FloatField(null=True, blank=True)
     max_value = models.FloatField()
     max_value_result = models.CharField(max_length=20)
 
@@ -30,6 +36,9 @@ class Prediction(models.Model):
     odds_h = models.FloatField(null=True, blank=True)
     odds_d = models.FloatField(null=True, blank=True)
     odds_a = models.FloatField(null=True, blank=True)
+    best_odds = models.FloatField(null=True, blank=True)
+    odds_over25 = models.FloatField(null=True, blank=True)
+    odds_under25 = models.FloatField(null=True, blank=True)
 
     # Actual results (null until resolved)
     actual_ftr = models.CharField(max_length=1, null=True, blank=True)

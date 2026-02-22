@@ -68,6 +68,8 @@ def analysis(Train, Test):
     draw = []
     HWin = []
     AWin = []
+    btts_yes = []
+    over25_list = []
     phg = []
     pag = []
 
@@ -83,6 +85,18 @@ def analysis(Train, Test):
         HWin.append(sum(sum(np.tril(scores))) - sum(np.diag(scores)))
         AWin.append(sum(sum(np.triu(scores))) - sum(np.diag(scores)))
 
+        # BTTS: probability both teams score at least 1 goal
+        # Exclude row 0 (home=0) and column 0 (away=0)
+        btts_yes.append(scores[1:, 1:].sum())
+
+        # Over 2.5 goals: sum of cells where home + away > 2
+        over25 = sum(
+            scores[i, j]
+            for i in range(10) for j in range(10)
+            if i + j > 2
+        )
+        over25_list.append(over25)
+
         homeg, awayg = np.where(scores == np.amax(scores))
         phg.append(homeg[0])
         pag.append(awayg[0])
@@ -90,6 +104,10 @@ def analysis(Train, Test):
     Test['HWin'] = HWin
     Test['Draw'] = draw
     Test['AWin'] = AWin
+    Test['BTTS_Yes'] = btts_yes
+    Test['BTTS_No'] = [1 - b for b in btts_yes]
+    Test['Over25'] = over25_list
+    Test['Under25'] = [1 - o for o in over25_list]
     Test['Pred_FTHG'] = phg
     Test['Pred_FTAG'] = pag
     Test['Pred_FTR'] = np.nan

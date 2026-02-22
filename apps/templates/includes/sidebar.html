@@ -35,7 +35,7 @@
                             <li class="{% if segment == 'performance_accuracy' %}active{% endif %}">
                                 <a href="/performance/accuracy/">
                                     <span class="sidebar-mini-icon">A</span>
-                                    <span class="sidebar-normal">Model Accuracy</span>
+                                    <span class="sidebar-normal">Match Result</span>
                                 </a>
                             </li>
                             <li class="{% if segment == 'performance_financial' %}active{% endif %}">
@@ -48,6 +48,30 @@
                                 <a href="/performance/strategies/">
                                     <span class="sidebar-mini-icon">S</span>
                                     <span class="sidebar-normal">Strategies</span>
+                                </a>
+                            </li>
+                            <li class="{% if segment == 'performance_btts_accuracy' %}active{% endif %}">
+                                <a href="/performance/btts/">
+                                    <span class="sidebar-mini-icon">B</span>
+                                    <span class="sidebar-normal">BTTS</span>
+                                </a>
+                            </li>
+                            <li class="{% if segment == 'performance_ou_accuracy' %}active{% endif %}">
+                                <a href="/performance/overunder/">
+                                    <span class="sidebar-mini-icon">O</span>
+                                    <span class="sidebar-normal">Over/Under</span>
+                                </a>
+                            </li>
+                            <li class="{% if segment == 'performance_ou_financial' %}active{% endif %}">
+                                <a href="/performance/overunder/financial/">
+                                    <span class="sidebar-mini-icon">$</span>
+                                    <span class="sidebar-normal">O/U Financial</span>
+                                </a>
+                            </li>
+                            <li class="{% if segment == 'performance_ou_strategies' %}active{% endif %}">
+                                <a href="/performance/overunder/strategies/">
+                                    <span class="sidebar-mini-icon">S</span>
+                                    <span class="sidebar-normal">O/U Strategies</span>
                                 </a>
                             </li>
                         </ul>

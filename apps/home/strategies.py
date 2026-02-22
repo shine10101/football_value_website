@@ -5,6 +5,8 @@ and which outcome to bet on. The simulate_all() function runs all strategies
 in a single pass over the data for efficiency.
 """
 
+from collections import defaultdict
+
 RESULT_MAP = {'Home Win': 'H', 'Draw': 'D', 'Away Win': 'A'}
 OUTCOME_TO_RESULT = {'H': 'Home Win', 'D': 'Draw', 'A': 'Away Win'}
 
@@ -39,6 +41,12 @@ STRATEGIES = [
         'description': 'Bet draws when draw probability exceeds implied odds',
         'color': '#fd5d93',
     },
+    {
+        'id': 'confidence_picks',
+        'name': 'Confidence Picks',
+        'description': 'Value + decisive probability + predictable teams/league + sensible odds + model-market agreement',
+        'color': '#ba54f5',
+    },
 ]
 
 
@@ -56,8 +64,8 @@ def _get_odds(p, outcome_code):
     return None
 
 
-def _evaluate_strategies(p):
-    """Evaluate all 5 strategies for a single prediction.
+def _evaluate_strategies(p, team_tracker=None):
+    """Evaluate all strategies for a single prediction.
 
     Returns a list of (outcome_code, bet_odds) or None for each strategy.
     None means the strategy skips this prediction.
@@ -110,11 +118,69 @@ def _evaluate_strategies(p):
     else:
         results.append(None)
 
+    # Strategy 6: Confidence Picks - multi-signal composite filter
+    # Requires: value, decisive probability, model-market agreement,
+    #           predictable teams & league, sensible odds range
+    if p.max_value > 0 and bet_outcome and team_tracker is not None:
+        probs = {'H': p.h_win or 0, 'D': p.draw or 0, 'A': p.a_win or 0}
+        bet_prob = probs.get(bet_outcome, 0)
+
+        # 1. Model-market agreement: value pick matches most-likely outcome
+        max_prob_outcome = max(probs, key=probs.get)
+        agreement = (max_prob_outcome == bet_outcome)
+
+        # 2. Probability margin: bet outcome must lead by >= 10pp over next best
+        sorted_probs = sorted(probs.values(), reverse=True)
+        margin = sorted_probs[0] - sorted_probs[1] if len(sorted_probs) >= 2 else 0
+        decisive = (bet_prob > 0.50 and margin >= 0.10)
+
+        # 3. Team predictability: both teams >= 60% accuracy, min 5 matches
+        home_stats = team_tracker.get(p.home_team, {'correct': 0, 'total': 0})
+        away_stats = team_tracker.get(p.away_team, {'correct': 0, 'total': 0})
+        min_team_matches = 5
+        min_team_accuracy = 0.50
+        home_ok = (home_stats['total'] >= min_team_matches and
+                   home_stats['correct'] / home_stats['total'] >= min_team_accuracy)
+        away_ok = (away_stats['total'] >= min_team_matches and
+                   away_stats['correct'] / away_stats['total'] >= min_team_accuracy)
+
+        # 4. League predictability: league >= 50% accuracy, min 20 matches
+        league_stats = team_tracker.get('__league__' + p.div, {'correct': 0, 'total': 0})
+        min_league_matches = 20
+        min_league_accuracy = 0.40
+        league_ok = (league_stats['total'] >= min_league_matches and
+                     league_stats['correct'] / league_stats['total'] >= min_league_accuracy)
+
+        # 5. Odds range filter: avoid extreme longshots and tiny payouts
+        odds = _get_odds(p, bet_outcome)
+        odds_ok = (odds is not None and 1.4 <= odds <= 4.0)
+
+        # 6. Value bet win rate per team: track if the value outcome
+        #    actually happened historically for these teams (min 3 bets)
+        home_vb = team_tracker.get('__vb__' + p.home_team)
+        away_vb = team_tracker.get('__vb__' + p.away_team)
+        min_vb_matches = 3
+        min_vb_winrate = 0.40
+        home_vb_total = home_vb['total'] if home_vb else 0
+        away_vb_total = away_vb['total'] if away_vb else 0
+        home_vb_ok = (home_vb_total < min_vb_matches or
+                      home_vb.get('wins', 0) / home_vb_total >= min_vb_winrate)
+        away_vb_ok = (away_vb_total < min_vb_matches or
+                      away_vb.get('wins', 0) / away_vb_total >= min_vb_winrate)
+
+        if (agreement and decisive and home_ok and away_ok and
+                league_ok and odds_ok and home_vb_ok and away_vb_ok):
+            results.append((bet_outcome, odds))
+        else:
+            results.append(None)
+    else:
+        results.append(None)
+
     return results
 
 
 def simulate_all(predictions):
-    """Run all 5 strategies over a list of Prediction objects (ordered by date).
+    """Run all strategies over a list of Prediction objects (ordered by date).
 
     Returns a list of strategy result dicts and chart data for overlay P/L.
     """
@@ -131,11 +197,14 @@ def simulate_all(predictions):
         'running_pl': 0.0,
     } for _ in range(n)]
 
+    # Rolling team accuracy tracker for confidence picks strategy
+    team_tracker = defaultdict(lambda: {'correct': 0, 'total': 0})
+
     # Shared x-axis labels (from baseline strategy - most bets)
     date_labels = []
 
     for p in predictions:
-        evals = _evaluate_strategies(p)
+        evals = _evaluate_strategies(p, team_tracker=team_tracker)
         any_bet = False
 
         for i, ev in enumerate(evals):
@@ -176,6 +245,33 @@ def simulate_all(predictions):
 
             s['running_pl'] = s['profit']
             s['pl_values'].append(round(s['running_pl'], 2))
+
+        # Update rolling trackers AFTER evaluating (so current match
+        # doesn't influence its own decision)
+        is_correct = (p.pred_ftr == p.actual_ftr)
+
+        # Team prediction accuracy
+        team_tracker[p.home_team]['total'] += 1
+        team_tracker[p.away_team]['total'] += 1
+        if is_correct:
+            team_tracker[p.home_team]['correct'] += 1
+            team_tracker[p.away_team]['correct'] += 1
+
+        # League prediction accuracy
+        league_key = '__league__' + p.div
+        team_tracker[league_key]['total'] += 1
+        if is_correct:
+            team_tracker[league_key]['correct'] += 1
+
+        # Per-team value bet win rate (did the value outcome actually happen?)
+        if p.max_value and p.max_value > 0:
+            vb_outcome = RESULT_MAP.get(p.max_value_result)
+            vb_won = (vb_outcome == p.actual_ftr)
+            for team in [p.home_team, p.away_team]:
+                vb_key = '__vb__' + team
+                team_tracker[vb_key]['total'] += 1
+                if vb_won:
+                    team_tracker[vb_key]['wins'] = team_tracker[vb_key].get('wins', 0) + 1
 
         if any_bet:
             date_labels.append(p.date.strftime('%d %b'))
