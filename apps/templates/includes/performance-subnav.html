@@ -1,0 +1,29 @@
+<div class="row">
+    <div class="col-12">
+        <div style="background: rgba(255,255,255,0.04); border-radius: 0.4285rem; padding: 8px 15px; margin-bottom: 20px;">
+            <ul class="nav nav-pills" style="margin: 0;">
+                <li class="nav-item">
+                    <a class="nav-link {% if segment == 'performance_accuracy' %}active{% endif %}"
+                       href="{% url 'performance_accuracy' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
+                       style="font-size: 0.82rem; padding: 6px 16px;">
+                        <i class="tim-icons icon-chart-bar-32 mr-1"></i> Model Accuracy
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if segment == 'performance_financial' %}active{% endif %}"
+                       href="{% url 'performance_financial' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
+                       style="font-size: 0.82rem; padding: 6px 16px;">
+                        <i class="tim-icons icon-money-coins mr-1"></i> Financial Analysis
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if segment == 'performance_strategies' %}active{% endif %}"
+                       href="{% url 'performance_strategies' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
+                       style="font-size: 0.82rem; padding: 6px 16px;">
+                        <i class="tim-icons icon-puzzle-10 mr-1"></i> Betting Strategies
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>

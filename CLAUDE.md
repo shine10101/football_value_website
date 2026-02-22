@@ -25,6 +25,12 @@ python manage.py collectstatic --noinput
 # Run tests
 python manage.py test
 python manage.py test apps.home        # single app
+
+# Resolve past predictions with actual results
+python manage.py resolve_results
+
+# Backcast historical predictions for performance data
+python manage.py backcast --leagues E0 E1 --season 2526 --min-games 10
 ```
 
 ### Docker / Production
@@ -72,15 +78,21 @@ This is a **Django 4.2** web app built on the [Black Dashboard](https://www.crea
 ### Static files
 - Source files in `apps/static/assets/`; collected to `core/staticfiles/` for production (served by WhiteNoise).
 
-### URL routing
-`core/urls.py` → authentication routes first, then `apps/home/urls.py` last (which has a catch-all `re_path` for template-based pages).
-
 ### Deployment
 - Docker + Gunicorn (port 5005) behind **Traefik** for TLS termination. See `docker-compose.yml` and `deployment/traefik/`.
 - `.env.production` holds production secrets; `.env` is used for local dev.
 - `entrypoint.sh` runs `migrate`, `collectstatic`, then starts Gunicorn.
 
+### URL routing
+- `/` — Dashboard (index)
+- `/tables.html` — Value predictions table
+- `/performance/` — Performance analysis page
+- `/api/refresh/` (POST) — Trigger prediction pipeline
+- `/api/refresh/status/` (GET) — Poll pipeline progress
+
 ### Key data flow
-1. `predictions.csv` is pre-generated (or refreshed via `/api/refresh/`) and read directly by views — no database tables for prediction data.
+1. `predictions.csv` is pre-generated (or refreshed via `/api/refresh/`) and read directly by views for the dashboard and tables pages.
 2. The CSV columns used: `Div`, `Date`, `Time`, `HomeTeam`, `AwayTeam`, `HWin`, `Draw`, `AWin`, `Pred_FTR`, `Max_Value`, `Max_Value_Result`, `Pred_FTHG`, `Pred_FTAG`.
 3. `Max_Value > 0` indicates positive expected value bets; data is pre-sorted by `Max_Value` descending before display.
+4. The pipeline also archives predictions to the `Prediction` database model and resolves past predictions against actual results. The performance page reads exclusively from the database (not the CSV).
+5. The `backcast` management command can populate historical performance data by replaying past matches through the model.

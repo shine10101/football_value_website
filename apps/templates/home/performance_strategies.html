@@ -1,0 +1,338 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Betting Strategies {% endblock %}
+
+{% block stylesheets %}
+<style>
+    .badge-pill { font-size: 0.7rem; padding: 0.35em 0.65em; font-weight: 500; }
+    .filter-bar { background: rgba(255,255,255,0.04); border-radius: 0.4285rem; padding: 15px; margin-bottom: 20px; }
+    .filter-bar .form-control { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.85rem; }
+    .filter-bar .form-control:focus { border-color: #1d8cf8; }
+    .filter-bar select.form-control option { background: #1e1e2f; color: #fff; }
+    .filter-bar .btn { font-size: 0.85rem; }
+    @media (max-width: 768px) {
+        .table .hide-mobile { display: none; }
+        .table td, .table th { font-size: 0.75rem; padding: 0.4rem; }
+    }
+</style>
+{% endblock stylesheets %}
+
+{% block content %}
+
+    <div class="content">
+        {% include 'includes/performance-subnav.html' %}
+
+        <!-- League Filter Bar -->
+        <div class="row">
+            <div class="col-12">
+                <div class="filter-bar" style="margin-bottom: 25px;">
+                    <form method="get" class="row align-items-end">
+                        <div class="col-md-6 col-sm-6 mb-2">
+                            <label style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">League</label>
+                            <select name="league" class="form-control form-control-sm">
+                                <option value="">All Leagues</option>
+                                {% for opt in league_options %}
+                                <option value="{{ opt.code }}" {% if opt.code == league_filter %}selected{% endif %}>{{ opt.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 col-sm-6 mb-2">
+                            <button type="submit" class="btn btn-primary btn-sm btn-block">Apply Filter</button>
+                        </div>
+                    </form>
+                    {% if league_filter %}
+                    <div style="margin-top: 10px;">
+                        <span class="badge badge-pill" style="background: rgba(29,140,248,0.3); color: #1d8cf8; font-size: 0.72rem; padding: 0.4em 0.8em;">
+                            {% for opt in league_options %}{% if opt.code == league_filter %}{{ opt.name }}{% endif %}{% endfor %}
+                        </span>
+                        <a href="?" style="font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-left: 8px;">Clear filter</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if betting_strategies %}
+        <!-- Section Header -->
+        <div class="row">
+            <div class="col-12">
+                <h3 class="text-white mb-3" style="font-size: 1.1rem; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                    <i class="tim-icons icon-puzzle-10 mr-2"></i>Betting Strategies
+                    <small style="font-size: 0.7rem; color: rgba(255,255,255,0.5); display: block; margin-top: 4px;">5 cherry-picking strategies tested against backcasted results</small>
+                </h3>
+            </div>
+        </div>
+
+        <!-- Strategy Comparison Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-category">Head-to-Head</h5>
+                        <h4 class="card-title">Strategy Performance Comparison</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table tablesorter">
+                                <thead class="text-primary">
+                                    <tr>
+                                        <th>Strategy</th>
+                                        <th>Bets</th>
+                                        <th>Record</th>
+                                        <th>Win Rate</th>
+                                        <th>Avg Odds</th>
+                                        <th>P/L</th>
+                                        <th>ROI</th>
+                                        <th class="hide-mobile">Max DD</th>
+                                        <th class="hide-mobile">Losing Streak</th>
+                                        <th class="hide-mobile">Kelly</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for s in betting_strategies %}
+                                    <tr>
+                                        <td>
+                                            <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: {{ s.color }}; margin-right: 6px; vertical-align: middle;"></span>
+                                            <strong style="color: #fff;">{{ s.name }}</strong>
+                                            <br><small style="color: rgba(255,255,255,0.4); font-size: 0.68rem; margin-left: 16px;">{{ s.description }}</small>
+                                        </td>
+                                        <td>{{ s.bets }}</td>
+                                        <td>{{ s.wins }}W - {{ s.losses }}L</td>
+                                        <td>{{ s.win_rate }}%</td>
+                                        <td>{{ s.avg_odds }}</td>
+                                        <td class="{% if s.profit >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-weight: 600;">
+                                            {% if s.profit >= 0 %}+{% endif %}{{ s.profit }}u
+                                        </td>
+                                        <td class="{% if s.roi >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-weight: 600;">
+                                            {% if s.roi >= 0 %}+{% endif %}{{ s.roi }}%
+                                        </td>
+                                        <td class="hide-mobile text-warning" style="font-weight: 600;">{{ s.max_drawdown }}u</td>
+                                        <td class="hide-mobile">{{ s.max_losing_streak }}</td>
+                                        <td class="hide-mobile {% if s.kelly > 0 %}text-success{% else %}text-danger{% endif %}" style="font-weight: 600;">
+                                            {% if s.kelly > 0 %}{{ s.kelly }}%{% else %}No edge{% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Multi-Strategy P/L Chart -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card card-chart">
+                    <div class="card-header">
+                        <h5 class="card-category">Strategy Comparison</h5>
+                        <h4 class="card-title">Cumulative P/L by Strategy</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area" style="height: 380px;">
+                            <canvas id="bettingStrategyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Per-League Strategy Breakdown -->
+        {% if league_strategy_data %}
+        <div class="row">
+            <div class="col-12">
+                <h3 class="text-white mb-3" style="font-size: 1.1rem; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                    <i class="tim-icons icon-world mr-2"></i>Strategy Performance by League
+                    <small style="font-size: 0.7rem; color: rgba(255,255,255,0.5); display: block; margin-top: 4px;">Compare how each strategy performs across different leagues to find exploitable edges</small>
+                </h3>
+            </div>
+        </div>
+
+        <!-- League Strategy Heatmap Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-category">ROI Comparison</h5>
+                        <h4 class="card-title">Strategy ROI by League</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table tablesorter" id="leagueStrategyTable">
+                                <thead class="text-primary">
+                                    <tr>
+                                        <th>League</th>
+                                        {% for s in betting_strategies %}
+                                        <th style="text-align: center;">
+                                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: {{ s.color }}; margin-right: 4px; vertical-align: middle;"></span>
+                                            <span style="font-size: 0.7rem;">{{ s.name }}</span>
+                                        </th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for lg in league_strategy_data %}
+                                    <tr>
+                                        <td><strong style="color: #fff;">{{ lg.name }}</strong></td>
+                                        {% for s in lg.strategies %}
+                                        <td style="text-align: center;">
+                                            {% if s.bets > 0 %}
+                                            <span class="{% if s.roi >= 5 %}text-success{% elif s.roi >= 0 %}text-white{% else %}text-danger{% endif %}" style="font-weight: 600; font-size: 0.85rem;">
+                                                {% if s.roi >= 0 %}+{% endif %}{{ s.roi }}%
+                                            </span>
+                                            <br><small style="color: rgba(255,255,255,0.35); font-size: 0.62rem;">{{ s.bets }} bets &middot; {% if s.profit >= 0 %}+{% endif %}{{ s.profit }}u</small>
+                                            {% else %}
+                                            <span style="color: rgba(255,255,255,0.2); font-size: 0.75rem;">&mdash;</span>
+                                            {% endif %}
+                                        </td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expandable Per-League Detail Cards -->
+        {% for lg in league_strategy_data %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header" style="cursor: pointer;" onclick="var b=this.nextElementSibling; b.style.display=b.style.display==='none'?'block':'none'; this.querySelector('.toggle-icon').textContent=b.style.display==='none'?'+':'-';">
+                        <h4 class="card-title" style="margin-bottom: 0;">
+                            <span class="toggle-icon" style="display: inline-block; width: 20px; text-align: center; font-weight: 700; color: #1d8cf8;">+</span>
+                            {{ lg.name }}
+                            <small style="color: rgba(255,255,255,0.4); font-size: 0.72rem; margin-left: 10px;">
+                                {% for s in lg.strategies %}{% if s.id == 'all_value' and s.bets > 0 %}{{ s.bets }} value bets{% endif %}{% endfor %}
+                            </small>
+                        </h4>
+                    </div>
+                    <div class="card-body" style="display: none;">
+                        <div class="table-responsive">
+                            <table class="table tablesorter">
+                                <thead class="text-primary">
+                                    <tr>
+                                        <th>Strategy</th>
+                                        <th>Bets</th>
+                                        <th>Record</th>
+                                        <th>Win Rate</th>
+                                        <th>Avg Odds</th>
+                                        <th>P/L</th>
+                                        <th>ROI</th>
+                                        <th class="hide-mobile">Max DD</th>
+                                        <th class="hide-mobile">Kelly</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for s in lg.strategies %}
+                                    <tr>
+                                        <td>
+                                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: {{ s.color }}; margin-right: 5px; vertical-align: middle;"></span>
+                                            <strong style="color: #fff; font-size: 0.82rem;">{{ s.name }}</strong>
+                                        </td>
+                                        <td>{{ s.bets }}</td>
+                                        <td>{% if s.bets > 0 %}{{ s.wins }}W - {{ s.losses }}L{% else %}&mdash;{% endif %}</td>
+                                        <td>{% if s.bets > 0 %}{{ s.win_rate }}%{% else %}&mdash;{% endif %}</td>
+                                        <td>{% if s.bets > 0 %}{{ s.avg_odds }}{% else %}&mdash;{% endif %}</td>
+                                        <td class="{% if s.profit >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-weight: 600;">
+                                            {% if s.bets > 0 %}{% if s.profit >= 0 %}+{% endif %}{{ s.profit }}u{% else %}&mdash;{% endif %}
+                                        </td>
+                                        <td class="{% if s.roi >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-weight: 600;">
+                                            {% if s.bets > 0 %}{% if s.roi >= 0 %}+{% endif %}{{ s.roi }}%{% else %}&mdash;{% endif %}
+                                        </td>
+                                        <td class="hide-mobile text-warning" style="font-weight: 600;">
+                                            {% if s.bets > 0 %}{{ s.max_drawdown }}u{% else %}&mdash;{% endif %}
+                                        </td>
+                                        <td class="hide-mobile {% if s.kelly > 0 %}text-success{% else %}text-danger{% endif %}" style="font-weight: 600;">
+                                            {% if s.bets > 0 %}{% if s.kelly > 0 %}{{ s.kelly }}%{% else %}No edge{% endif %}{% else %}&mdash;{% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% else %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center" style="padding: 40px;">
+                        <i class="tim-icons icon-puzzle-10" style="font-size: 2rem; color: rgba(255,255,255,0.3); margin-bottom: 15px;"></i>
+                        <p style="color: rgba(255,255,255,0.5);">No strategy data available yet. Resolve some predictions first.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+{% endblock content %}
+
+{% block javascripts %}
+<script>
+{% if betting_strategies %}
+(function() {
+    var bsData = JSON.parse('{{ betting_strategy_chart_json|escapejs }}');
+    var bsDatasets = bsData.datasets.map(function(ds) {
+        return {
+            label: ds.label,
+            data: ds.data,
+            borderColor: ds.color,
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            fill: false,
+            pointRadius: 0,
+            pointHitRadius: 6,
+        };
+    });
+    var ctx7 = document.getElementById('bettingStrategyChart').getContext('2d');
+    new Chart(ctx7, {
+        type: 'line',
+        data: { labels: bsData.labels, datasets: bsDatasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            legend: { position: 'bottom', labels: { fontColor: 'rgba(255,255,255,0.7)', padding: 14, boxWidth: 14, usePointStyle: true } },
+            tooltips: {
+                mode: 'index',
+                intersect: false,
+                callbacks: {
+                    label: function(item, data) {
+                        return data.datasets[item.datasetIndex].label + ': ' + (item.yLabel >= 0 ? '+' : '') + item.yLabel.toFixed(1) + 'u';
+                    }
+                }
+            },
+            hover: { mode: 'index', intersect: false },
+            scales: {
+                xAxes: [{
+                    ticks: { fontColor: 'rgba(255,255,255,0.4)', fontSize: 9, maxTicksLimit: 15, maxRotation: 45 },
+                    gridLines: { color: 'rgba(255,255,255,0.06)' }
+                }],
+                yAxes: [{
+                    ticks: {
+                        fontColor: 'rgba(255,255,255,0.4)',
+                        callback: function(v) { return (v >= 0 ? '+' : '') + v + 'u'; }
+                    },
+                    gridLines: {
+                        color: 'rgba(255,255,255,0.06)',
+                        zeroLineColor: 'rgba(255,255,255,0.3)',
+                        zeroLineWidth: 2
+                    }
+                }]
+            }
+        }
+    });
+})();
+{% endif %}
+</script>
+{% endblock javascripts %}

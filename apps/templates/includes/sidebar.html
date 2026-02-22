@@ -26,10 +26,32 @@
                     </a>
                 </li>
                 <li class="{% if 'performance' in segment %} active {% endif %}">
-                    <a href="/performance/">
+                    <a data-toggle="collapse" href="#performanceSubmenu">
                         <i class="tim-icons icon-trophy"></i>
-                        <p>Performance</p>
+                        <p>Performance <b class="caret"></b></p>
                     </a>
+                    <div class="collapse {% if 'performance' in segment %}show{% endif %}" id="performanceSubmenu">
+                        <ul class="nav">
+                            <li class="{% if segment == 'performance_accuracy' %}active{% endif %}">
+                                <a href="/performance/accuracy/">
+                                    <span class="sidebar-mini-icon">A</span>
+                                    <span class="sidebar-normal">Model Accuracy</span>
+                                </a>
+                            </li>
+                            <li class="{% if segment == 'performance_financial' %}active{% endif %}">
+                                <a href="/performance/financial/">
+                                    <span class="sidebar-mini-icon">F</span>
+                                    <span class="sidebar-normal">Financial</span>
+                                </a>
+                            </li>
+                            <li class="{% if segment == 'performance_strategies' %}active{% endif %}">
+                                <a href="/performance/strategies/">
+                                    <span class="sidebar-mini-icon">S</span>
+                                    <span class="sidebar-normal">Strategies</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </li>
                 <li>
                     <form method="post" action="{% url 'logout' %}" style="display:inline; width:100%;">
