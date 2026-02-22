@@ -11,6 +11,9 @@ urlpatterns = [
     # The home page
     path('', views.index, name='home'),
 
+    # Performance tracking
+    path('performance/', views.performance, name='performance'),
+
     # Prediction refresh API
     path('api/refresh/', views.refresh_predictions, name='refresh_predictions'),
     path('api/refresh/status/', views.refresh_status, name='refresh_status'),

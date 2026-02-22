@@ -3,7 +3,11 @@
     "allow": [
       "Bash(venv/Scripts/python:*)",
       "Bash(python:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(venv/Scripts/python.exe manage.py makemigrations:*)",
+      "Bash(c:/Users/pshin/VSCode/football_value_website/venv/Scripts/python.exe --version)",
+      "Bash(where:*)"
     ]
   }
 }

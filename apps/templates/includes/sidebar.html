@@ -25,6 +25,12 @@
                         <p>Value Table</p>
                     </a>
                 </li>
+                <li class="{% if 'performance' in segment %} active {% endif %}">
+                    <a href="/performance/">
+                        <i class="tim-icons icon-trophy"></i>
+                        <p>Performance</p>
+                    </a>
+                </li>
                 <li>
                     <form method="post" action="{% url 'logout' %}" style="display:inline; width:100%;">
                         {% csrf_token %}

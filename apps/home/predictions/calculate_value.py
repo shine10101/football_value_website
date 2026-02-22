@@ -10,7 +10,7 @@ def value(predictions):
         probability.values - implied_odds.values,
         columns=['Home Win', 'Draw', 'Away Win'],
     )
-    predictions['Max_Value'] = pd.DataFrame(val.max(axis=1))
-    predictions['Max_Value_Result'] = pd.DataFrame(val.idxmax(axis=1))
+    predictions['Max_Value'] = val.max(axis=1).values
+    predictions['Max_Value_Result'] = val.idxmax(axis=1).values
     predictions = predictions.sort_values('Max_Value', ascending=False)
     return predictions
