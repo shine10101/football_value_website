@@ -857,6 +857,13 @@ def _get_strategies_context(request):
 
 
 @login_required(login_url="/login/")
+def methodology(request):
+    """Static page explaining the prediction methodology."""
+    context = {'segment': 'methodology'}
+    return HttpResponse(loader.get_template('home/methodology.html').render(context, request))
+
+
+@login_required(login_url="/login/")
 def performance(request):
     """Redirect old /performance/ URL to the accuracy sub-page."""
     query_string = request.META.get('QUERY_STRING', '')

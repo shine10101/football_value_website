@@ -1,0 +1,388 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Methodology {% endblock %}
+
+{% block stylesheets %}
+<style>
+    .methodology-section { margin-bottom: 35px; }
+    .methodology-section h4 { color: #1d8cf8; margin-bottom: 15px; font-weight: 600; }
+    .methodology-section h5 { color: #00f2c3; margin-top: 20px; margin-bottom: 10px; font-weight: 600; font-size: 1rem; }
+    .methodology-section p, .methodology-section li { color: rgba(255,255,255,0.8); line-height: 1.7; font-size: 0.9rem; }
+    .methodology-section ul { padding-left: 20px; }
+    .methodology-section li { margin-bottom: 6px; }
+    .formula-box {
+        background: rgba(29,140,248,0.08);
+        border-left: 3px solid #1d8cf8;
+        padding: 15px 20px;
+        border-radius: 0 0.4285rem 0.4285rem 0;
+        margin: 15px 0;
+        font-family: 'Courier New', monospace;
+        font-size: 0.88rem;
+        color: rgba(255,255,255,0.9);
+        overflow-x: auto;
+    }
+    .step-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: rgba(29,140,248,0.2);
+        color: #1d8cf8;
+        font-weight: 700;
+        font-size: 0.85rem;
+        margin-right: 10px;
+        flex-shrink: 0;
+    }
+    .step-row { display: flex; align-items: flex-start; margin-bottom: 12px; }
+    .step-row p { margin-bottom: 0; }
+    .info-icon { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    .info-icon.icon-primary { background: rgba(29,140,248,0.2); color: #1d8cf8; }
+    .info-icon.icon-success { background: rgba(0,242,195,0.2); color: #00f2c3; }
+    .info-icon.icon-warning { background: rgba(255,141,114,0.2); color: #ff8d72; }
+    .info-icon.icon-info { background: rgba(29,140,248,0.2); color: #1d8cf8; }
+    .info-icon.icon-danger { background: rgba(253,93,147,0.2); color: #fd5d93; }
+    .league-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 10px; }
+    .league-chip {
+        background: rgba(255,255,255,0.06);
+        border-radius: 0.4285rem;
+        padding: 8px 12px;
+        font-size: 0.82rem;
+        color: rgba(255,255,255,0.8);
+    }
+    .league-chip strong { color: #1d8cf8; margin-right: 6px; }
+</style>
+{% endblock stylesheets %}
+
+{% block content %}
+
+<div class="content">
+
+    <!-- Page Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title" style="margin-bottom: 4px;">Prediction Methodology</h4>
+                    <p class="card-category">How Football Value generates match outcome predictions and identifies betting value</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overview Cards -->
+    <div class="row">
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="card card-stats">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-5 col-md-4">
+                            <div class="info-icon text-center icon-primary">
+                                <i class="tim-icons icon-cloud-download-93"></i>
+                            </div>
+                        </div>
+                        <div class="col-7 col-md-8">
+                            <div class="numbers text-right">
+                                <p class="card-category" style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Step 1</p>
+                                <p class="card-title" style="font-size: 0.95rem;">Data Collection</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="card card-stats">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-5 col-md-4">
+                            <div class="info-icon text-center icon-success">
+                                <i class="tim-icons icon-atom"></i>
+                            </div>
+                        </div>
+                        <div class="col-7 col-md-8">
+                            <div class="numbers text-right">
+                                <p class="card-category" style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Step 2</p>
+                                <p class="card-title" style="font-size: 0.95rem;">Poisson Model</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="card card-stats">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-5 col-md-4">
+                            <div class="info-icon text-center icon-warning">
+                                <i class="tim-icons icon-money-coins"></i>
+                            </div>
+                        </div>
+                        <div class="col-7 col-md-8">
+                            <div class="numbers text-right">
+                                <p class="card-category" style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Step 3</p>
+                                <p class="card-title" style="font-size: 0.95rem;">Value Calculation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="card card-stats">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-5 col-md-4">
+                            <div class="info-icon text-center icon-danger">
+                                <i class="tim-icons icon-trophy"></i>
+                            </div>
+                        </div>
+                        <div class="col-7 col-md-8">
+                            <div class="numbers text-right">
+                                <p class="card-category" style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Step 4</p>
+                                <p class="card-title" style="font-size: 0.95rem;">Performance Tracking</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 1. Data Collection -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body methodology-section">
+                    <h4><i class="tim-icons icon-cloud-download-93" style="margin-right: 8px;"></i> 1. Data Collection</h4>
+                    <p>
+                        All historical match data and upcoming fixture information is sourced from
+                        <strong style="color: #fff;">football-data.co.uk</strong>, a widely used provider of football
+                        statistics covering major European leagues. The system fetches:
+                    </p>
+                    <ul>
+                        <li><strong style="color: #fff;">Historical results</strong> &mdash; full-time scores (home goals, away goals, result) for every match in the current season, used as training data for the model.</li>
+                        <li><strong style="color: #fff;">Upcoming fixtures</strong> &mdash; scheduled matches with pre-match bookmaker odds (market average and Bet365), used to identify value opportunities.</li>
+                    </ul>
+                    <p>
+                        Data is collected for the current season (August&ndash;July cycle) across 21 leagues in 11 countries.
+                        The season is auto-detected based on the current date.
+                    </p>
+
+                    <h5>Covered Leagues</h5>
+                    <div class="league-grid">
+                        <div class="league-chip"><strong>E0</strong> Premier League</div>
+                        <div class="league-chip"><strong>E1</strong> Championship</div>
+                        <div class="league-chip"><strong>E2</strong> League One</div>
+                        <div class="league-chip"><strong>E3</strong> League Two</div>
+                        <div class="league-chip"><strong>EC</strong> National League</div>
+                        <div class="league-chip"><strong>SC0</strong> Scottish Premiership</div>
+                        <div class="league-chip"><strong>SC1</strong> Scottish Championship</div>
+                        <div class="league-chip"><strong>SC2</strong> Scottish League One</div>
+                        <div class="league-chip"><strong>SC3</strong> Scottish League Two</div>
+                        <div class="league-chip"><strong>D1</strong> Bundesliga</div>
+                        <div class="league-chip"><strong>D2</strong> Bundesliga 2</div>
+                        <div class="league-chip"><strong>I1</strong> Serie A</div>
+                        <div class="league-chip"><strong>I2</strong> Serie B</div>
+                        <div class="league-chip"><strong>F1</strong> Ligue 1</div>
+                        <div class="league-chip"><strong>F2</strong> Ligue 2</div>
+                        <div class="league-chip"><strong>SP1</strong> La Liga</div>
+                        <div class="league-chip"><strong>SP2</strong> La Liga 2</div>
+                        <div class="league-chip"><strong>N1</strong> Eredivisie</div>
+                        <div class="league-chip"><strong>B1</strong> Jupiler League</div>
+                        <div class="league-chip"><strong>P1</strong> Primeira Liga</div>
+                        <div class="league-chip"><strong>T1</strong> Super Lig</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Poisson Model -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body methodology-section">
+                    <h4><i class="tim-icons icon-atom" style="margin-right: 8px;"></i> 2. The Poisson Model</h4>
+                    <p>
+                        The core prediction engine uses a <strong style="color: #fff;">Poisson regression approach</strong> to estimate
+                        the probability of each possible scoreline in a match. The Poisson distribution is a natural fit for modelling
+                        goal-scoring because goals are relatively rare, independent events within a match.
+                    </p>
+
+                    <h5>Team Strength Ratings</h5>
+                    <p>For each team in a league, four strength metrics are calculated from current-season results:</p>
+                    <div class="step-row">
+                        <span class="step-number">1</span>
+                        <p><strong style="color: #fff;">Home Attack Strength</strong> &mdash; the team's average home goals scored, divided by the league median. A value above 1.0 means the team scores more than the typical team at home.</p>
+                    </div>
+                    <div class="step-row">
+                        <span class="step-number">2</span>
+                        <p><strong style="color: #fff;">Home Defence Strength</strong> &mdash; the team's average home goals conceded, divided by the league median. A value above 1.0 means the team concedes more than average at home.</p>
+                    </div>
+                    <div class="step-row">
+                        <span class="step-number">3</span>
+                        <p><strong style="color: #fff;">Away Attack Strength</strong> &mdash; the team's average away goals scored, divided by the league median.</p>
+                    </div>
+                    <div class="step-row">
+                        <span class="step-number">4</span>
+                        <p><strong style="color: #fff;">Away Defence Strength</strong> &mdash; the team's average away goals conceded, divided by the league median.</p>
+                    </div>
+                    <p>
+                        Strength ratings are normalised against the <strong style="color: #fff;">league median</strong> rather than the mean,
+                        making them more robust to outlier performances.
+                    </p>
+
+                    <h5>Expected Goals</h5>
+                    <p>For each upcoming fixture, the model calculates expected goals for both sides:</p>
+                    <div class="formula-box">
+                        Home Expected Goals = Home Attack Strength &times; Away Defence Strength &times; League Avg Home Goals<br>
+                        Away Expected Goals = Away Attack Strength &times; Home Defence Strength &times; League Avg Away Goals
+                    </div>
+                    <p>
+                        This captures the interaction between a team's attacking ability and their opponent's
+                        defensive quality, scaled by the overall league scoring rate at home or away.
+                    </p>
+
+                    <h5>Score Matrix &amp; Outcome Probabilities</h5>
+                    <p>
+                        Using the expected goals as the Poisson parameter (&lambda;), the model builds a
+                        <strong style="color: #fff;">10&times;10 score probability matrix</strong> covering scorelines from
+                        0-0 to 9-9. Each cell contains the joint probability of that exact scoreline:
+                    </p>
+                    <div class="formula-box">
+                        P(Home = x, Away = y) = Poisson(x, &lambda;<sub>home</sub>) &times; Poisson(y, &lambda;<sub>away</sub>)
+                    </div>
+                    <p>From this matrix, match outcome probabilities are derived by summing the relevant regions:</p>
+                    <ul>
+                        <li><strong style="color: #fff;">Home Win</strong> &mdash; sum of all cells where home goals &gt; away goals (lower triangle).</li>
+                        <li><strong style="color: #fff;">Draw</strong> &mdash; sum of the diagonal (where home goals = away goals).</li>
+                        <li><strong style="color: #fff;">Away Win</strong> &mdash; sum of all cells where away goals &gt; home goals (upper triangle).</li>
+                    </ul>
+
+                    <h5>Additional Markets</h5>
+                    <p>The same score matrix also yields probabilities for other popular markets:</p>
+                    <ul>
+                        <li><strong style="color: #fff;">Both Teams to Score (BTTS)</strong> &mdash; probability that both teams score at least one goal. Calculated by summing all cells where both home &gt; 0 and away &gt; 0.</li>
+                        <li><strong style="color: #fff;">Over/Under 2.5 Goals</strong> &mdash; probability of more than 2.5 total goals. Calculated by summing all cells where home + away &gt; 2.</li>
+                    </ul>
+
+                    <h5>Predicted Scoreline</h5>
+                    <p>
+                        The <strong style="color: #fff;">most likely scoreline</strong> (the mode of the score matrix) is used as
+                        the predicted full-time score. The predicted match result (H/D/A) follows directly from comparing
+                        the predicted home and away goals.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Value Calculation -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body methodology-section">
+                    <h4><i class="tim-icons icon-money-coins" style="margin-right: 8px;"></i> 3. Value Calculation</h4>
+                    <p>
+                        The key insight behind value betting is simple: when the model's estimated probability for an
+                        outcome is <strong style="color: #fff;">higher</strong> than the probability implied by the bookmaker's odds,
+                        there is positive expected value. Over a large number of bets, consistently finding positive
+                        value should yield a profit.
+                    </p>
+
+                    <h5>How Value Is Computed</h5>
+                    <div class="step-row">
+                        <span class="step-number">1</span>
+                        <p><strong style="color: #fff;">Gather odds</strong> &mdash; the system uses average market odds across multiple bookmakers when available, falling back to Bet365 odds otherwise. Market averages reduce the noise of any single bookmaker's pricing.</p>
+                    </div>
+                    <div class="step-row">
+                        <span class="step-number">2</span>
+                        <p><strong style="color: #fff;">Convert to implied probability</strong> &mdash; bookmaker odds are converted to implied probabilities:</p>
+                    </div>
+                    <div class="formula-box">
+                        Implied Probability = 1 / Decimal Odds
+                    </div>
+                    <div class="step-row">
+                        <span class="step-number">3</span>
+                        <p><strong style="color: #fff;">Calculate value</strong> &mdash; value is the difference between the model's probability and the implied probability for each outcome (Home Win, Draw, Away Win):</p>
+                    </div>
+                    <div class="formula-box">
+                        Value = Model Probability &minus; Implied Probability
+                    </div>
+                    <div class="step-row">
+                        <span class="step-number">4</span>
+                        <p><strong style="color: #fff;">Identify best value</strong> &mdash; the outcome with the highest value is selected. A positive value means the model believes the event is more likely than the odds suggest.</p>
+                    </div>
+
+                    <h5>Over/Under 2.5 Value</h5>
+                    <p>
+                        The same value calculation is applied to the Over/Under 2.5 goals market. The model's
+                        Over 2.5 and Under 2.5 probabilities are compared against the respective market odds to
+                        find value in either direction.
+                    </p>
+
+                    <h5>Interpreting Value Numbers</h5>
+                    <ul>
+                        <li><strong style="color: #00f2c3;">Positive value</strong> &mdash; the model believes this outcome is underpriced by the market. For example, a value of +0.10 means the model estimates the probability is 10 percentage points higher than the odds imply.</li>
+                        <li><strong style="color: #fd5d93;">Negative value</strong> &mdash; the market price is fair or overpriced according to the model. No betting edge exists.</li>
+                        <li><strong style="color: #fff;">Higher value = stronger edge</strong> &mdash; predictions are sorted by value descending, so the top of the table shows the highest estimated edge.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Performance Tracking -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body methodology-section">
+                    <h4><i class="tim-icons icon-trophy" style="margin-right: 8px;"></i> 4. Performance Tracking</h4>
+                    <p>
+                        Every prediction is archived to a database and later resolved against actual match results.
+                        This allows the system to transparently track its own accuracy and profitability over time.
+                    </p>
+
+                    <h5>Resolution Process</h5>
+                    <p>
+                        Once a match has been played, the system fetches the actual result (full-time score and outcome)
+                        and compares it against the prediction. Each prediction is marked as <strong style="color: #fff;">resolved</strong>
+                        with the actual result stored alongside the original prediction.
+                    </p>
+
+                    <h5>What the Performance Page Tracks</h5>
+                    <ul>
+                        <li><strong style="color: #fff;">Accuracy</strong> &mdash; what percentage of predicted match results (H/D/A) were correct.</li>
+                        <li><strong style="color: #fff;">Calibration</strong> &mdash; whether a prediction with X% confidence actually wins X% of the time. A well-calibrated model's predicted probabilities closely match observed frequencies.</li>
+                        <li><strong style="color: #fff;">Financial P/L</strong> &mdash; simulated profit and loss using a flat-stake strategy on value bets, showing whether positive value translates to real profit.</li>
+                        <li><strong style="color: #fff;">Strategy comparison</strong> &mdash; analysis across different value thresholds, allowing users to see how filtering for higher-value bets affects accuracy and returns.</li>
+                        <li><strong style="color: #fff;">League and team breakdowns</strong> &mdash; performance disaggregated by league and individual teams, highlighting where the model performs best and worst.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Limitations -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body methodology-section">
+                    <h4><i class="tim-icons icon-alert-circle-exc" style="margin-right: 8px;"></i> 5. Limitations &amp; Considerations</h4>
+                    <ul>
+                        <li><strong style="color: #fff;">Season data only</strong> &mdash; the model trains on current-season results, so early-season predictions (few matches played) will have higher uncertainty.</li>
+                        <li><strong style="color: #fff;">No contextual factors</strong> &mdash; the model does not account for injuries, suspensions, managerial changes, weather, or motivation (e.g. relegation battles). It is a purely statistical model based on goals scored and conceded.</li>
+                        <li><strong style="color: #fff;">Independence assumption</strong> &mdash; the Poisson model assumes home and away goals are independent. In practice, match dynamics (e.g. a team going a goal down may push forward) can create some dependency between the two.</li>
+                        <li><strong style="color: #fff;">Not financial advice</strong> &mdash; positive expected value does not guarantee profit on any individual bet. Value betting is a long-term strategy that requires a large sample of bets to converge toward expected returns.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock content %}
