@@ -199,6 +199,67 @@ def _compute_confidence_flags(raw_df, accuracy_map):
     return flags
 
 
+def _compute_ou_confidence_flags(raw_df, accuracy_map):
+    """Check each CSV row against O/U confidence pick criteria.
+
+    Applies filters: OU value > 0, decisive probability, predicted goals
+    alignment, odds range, league predictability.
+
+    Returns a list of booleans, one per row.
+    """
+    flags = []
+    for _, row in raw_df.iterrows():
+        # 0. OU Value > 0
+        ou_value = row.get('OU_Max_Value', 0) or 0
+        if ou_value <= 0:
+            flags.append(False)
+            continue
+
+        best_bet = row.get('OU_Best_Bet', '')
+        if best_bet not in ('Over 2.5', 'Under 2.5'):
+            flags.append(False)
+            continue
+
+        # 1. Decisive probability: bet direction >= 55% with >= 15pp margin
+        over_prob = row.get('Over25', 0) or 0
+        under_prob = row.get('Under25', 0) or 0
+        if best_bet == 'Over 2.5':
+            bet_prob = over_prob
+            margin = over_prob - under_prob
+        else:
+            bet_prob = under_prob
+            margin = under_prob - over_prob
+
+        if bet_prob < 0.55 or margin < 0.15:
+            flags.append(False)
+            continue
+
+        # 2. Predicted goals alignment
+        pred_total = (row.get('Pred_FTHG', 0) or 0) + (row.get('Pred_FTAG', 0) or 0)
+        if best_bet == 'Over 2.5' and pred_total <= 2.5:
+            flags.append(False)
+            continue
+        if best_bet == 'Under 2.5' and pred_total >= 2.5:
+            flags.append(False)
+            continue
+
+        # 3. Odds range: 1.3 - 3.5
+        ou_odds = row.get('OU_Best_Odds', None)
+        if ou_odds is None or not (1.3 <= ou_odds <= 3.5):
+            flags.append(False)
+            continue
+
+        # 4. League predictability: >= 40% accuracy, min 20 matches
+        div = row.get('Div', '')
+        league_stats = accuracy_map.get('__league__' + div, {'total': 0, 'accuracy': 0})
+        if not (league_stats['total'] >= 20 and league_stats.get('accuracy', 0) >= 40.0):
+            flags.append(False)
+            continue
+
+        flags.append(True)
+    return flags
+
+
 def _load_predictions():
     """Load predictions from CSV, using a mtime-based cache."""
     path = settings.PREDICTIONS_CSV
@@ -296,9 +357,12 @@ def _get_index_context():
     # Compute confidence picks
     confidence_picks = []
     confidence_pick_count = 0
+    ou_confidence_picks = []
+    ou_confidence_pick_count = 0
     if raw_df is not None and not raw_df.empty:
         team_accuracy = _get_team_accuracy_map()
         confidence_flags = _compute_confidence_flags(raw_df, team_accuracy)
+        ou_confidence_flags = _compute_ou_confidence_flags(raw_df, team_accuracy)
         for i, row in enumerate(data):
             if i < len(confidence_flags):
                 row['is_confidence_pick'] = confidence_flags[i]
@@ -306,6 +370,19 @@ def _get_index_context():
                     confidence_pick_count += 1
                     if len(confidence_picks) < 5:
                         confidence_picks.append(row)
+            if i < len(ou_confidence_flags):
+                row['is_ou_confidence_pick'] = ou_confidence_flags[i]
+                if ou_confidence_flags[i]:
+                    ou_confidence_pick_count += 1
+                    if len(ou_confidence_picks) < 5:
+                        ou_confidence_picks.append(row)
+
+    # O/U top picks: sorted by OU_Max_Value descending, positive value only
+    ou_top_picks = sorted(
+        [d for d in data if (d.get('OU_Max_Value_Raw') or 0) > 0],
+        key=lambda d: d.get('OU_Max_Value_Raw') or 0,
+        reverse=True,
+    )[:5]
 
     context = {
         'total_predictions': len(data),
@@ -314,6 +391,9 @@ def _get_index_context():
         'top_picks': data[:5],
         'confidence_picks': confidence_picks,
         'confidence_pick_count': confidence_pick_count,
+        'ou_top_picks': ou_top_picks,
+        'ou_confidence_picks': ou_confidence_picks,
+        'ou_confidence_pick_count': ou_confidence_pick_count,
         'refresh_running': _refresh_state['running'],
     }
 
