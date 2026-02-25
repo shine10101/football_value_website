@@ -6,6 +6,7 @@ import logging
 import os
 import threading
 from collections import defaultdict
+from fractions import Fraction
 
 from django import template
 from django.conf import settings
@@ -50,6 +51,18 @@ _csv_cache = {'mtime': None, 'data': None, 'df': None}
 
 # Track refresh state
 _refresh_state = {'running': False, 'error': None, 'finished_at': None}
+
+
+def _decimal_to_fraction(decimal_odds):
+    """Convert decimal odds to fractional notation (e.g. 2.50 → 3/2)."""
+    try:
+        val = float(decimal_odds)
+    except (ValueError, TypeError):
+        return '-'
+    if pd.isna(val) or val <= 1:
+        return '-'
+    frac = Fraction(val - 1).limit_denominator(20)
+    return f"{frac.numerator}/{frac.denominator}"
 
 
 def _get_team_accuracy_map():
@@ -205,7 +218,8 @@ def _load_predictions():
                     'BTTS_Yes', 'BTTS_No', 'Over25', 'Under25',
                     'Over25_Value', 'Under25_Value',
                     'OU_Max_Value', 'OU_Best_Bet', 'OU_Best_Odds',
-                    'Best_Odds', 'Odds_Over25', 'Odds_Under25',
+                    'Best_Odds', 'Odds_H', 'Odds_D', 'Odds_A',
+                    'Odds_Over25', 'Odds_Under25',
                     'Max_Value', 'Max_Value_Result', 'Pred_FTHG', 'Pred_FTAG']
         available = [c for c in columns if c in df.columns]
         df = df[available]
@@ -243,10 +257,11 @@ def _load_predictions():
             df['OU_Max_Value_Raw'] = df['OU_Max_Value']
             df['OU_Max_Value'] = (df['OU_Max_Value'] * 100).round(1).astype(str) + '%'
 
-        # Round odds to 2 decimal places
-        for col in ['Best_Odds', 'Odds_Over25', 'Odds_Under25', 'OU_Best_Odds']:
+        # Convert odds to fractional notation
+        for col in ['Odds_H', 'Odds_D', 'Odds_A', 'Best_Odds',
+                     'Odds_Over25', 'Odds_Under25', 'OU_Best_Odds']:
             if col in df.columns:
-                df[col] = df[col].round(2)
+                df[col] = df[col].apply(_decimal_to_fraction)
 
         # Keep raw Max_Value for sorting (already sorted in CSV), then format
         if 'Max_Value' in df.columns:

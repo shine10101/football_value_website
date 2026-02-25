@@ -5,7 +5,7 @@ import numpy as np
 def value(predictions):
     """Calculate value by comparing model probabilities against average market odds."""
     # Use average market odds (AvgH/D/A) with B365 as fallback
-    for avg_col, b365_col, target in [('AvgH', 'B365H', '_OddsH'), ('AvgD', 'B365D', '_OddsD'), ('AvgA', 'B365A', '_OddsA')]:
+    for avg_col, b365_col, target in [('AvgH', 'B365H', 'Odds_H'), ('AvgD', 'B365D', 'Odds_D'), ('AvgA', 'B365A', 'Odds_A')]:
         if avg_col in predictions.columns:
             predictions[target] = pd.to_numeric(predictions[avg_col], errors='coerce')
         elif b365_col in predictions.columns:
@@ -13,7 +13,7 @@ def value(predictions):
         else:
             predictions[target] = np.nan
 
-    odds = predictions[['_OddsH', '_OddsD', '_OddsA']]
+    odds = predictions[['Odds_H', 'Odds_D', 'Odds_A']]
     implied_odds = 1 / odds
     probability = predictions[['HWin', 'Draw', 'AWin']]
     val = pd.DataFrame(
@@ -24,13 +24,10 @@ def value(predictions):
     predictions['Max_Value_Result'] = val.idxmax(axis=1).values
 
     # Store the market odds used for the best-value result
-    result_odds_map = {'Home Win': '_OddsH', 'Draw': '_OddsD', 'Away Win': '_OddsA'}
+    result_odds_map = {'Home Win': 'Odds_H', 'Draw': 'Odds_D', 'Away Win': 'Odds_A'}
     predictions['Best_Odds'] = predictions.apply(
-        lambda r: r[result_odds_map.get(r['Max_Value_Result'], '_OddsH')], axis=1
+        lambda r: r[result_odds_map.get(r['Max_Value_Result'], 'Odds_H')], axis=1
     )
-
-    # Clean up temp columns
-    predictions.drop(columns=['_OddsH', '_OddsD', '_OddsA'], inplace=True)
 
     # Over/Under 2.5 value using average market odds
     if 'Avg>2.5' in predictions.columns and 'Avg<2.5' in predictions.columns:

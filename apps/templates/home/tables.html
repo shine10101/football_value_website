@@ -89,7 +89,7 @@
                       <th>Prediction</th>
                       <th>Value</th>
                       <th class="hide-mobile">Best Bet</th>
-                      <th class="hide-mobile">Odds</th>
+                      <th>Odds</th>
                     {% elif market == 'btts' %}
                       <th>BTTS Yes %</th>
                       <th>BTTS No %</th>
@@ -98,7 +98,7 @@
                       <th>Under 2.5 %</th>
                       <th>Value</th>
                       <th class="hide-mobile">Best Bet</th>
-                      <th class="hide-mobile">Odds</th>
+                      <th>Odds</th>
                     {% endif %}
                   </tr>
                 </thead>
@@ -119,9 +119,9 @@
                             <td class="text-muted">{{ item.Pred_FTHG|default:"-" }} - {{ item.Pred_FTAG|default:"-" }}</td>
 
                             {% if market == 'result' %}
-                              <td>{{ item.HWin }}</td>
-                              <td class="hide-mobile">{{ item.Draw }}</td>
-                              <td>{{ item.AWin }}</td>
+                              <td>{{ item.HWin }} <small class="text-muted">({{ item.Odds_H|default:"-" }})</small></td>
+                              <td class="hide-mobile">{{ item.Draw }} <small class="text-muted">({{ item.Odds_D|default:"-" }})</small></td>
+                              <td>{{ item.AWin }} <small class="text-muted">({{ item.Odds_A|default:"-" }})</small></td>
                               <td>
                                   <span class="badge badge-pill badge-{% if item.Pred_FTR == 'H' %}primary{% elif item.Pred_FTR == 'D' %}warning{% else %}info{% endif %}">
                                       {% if item.Pred_FTR == 'H' %}HOME{% elif item.Pred_FTR == 'D' %}DRAW{% else %}AWAY{% endif %}
@@ -136,15 +136,15 @@
                                       {{ item.Max_Value_Result }}
                                   </span>
                               </td>
-                              <td class="hide-mobile text-muted">{{ item.Best_Odds|default:"-" }}</td>
+                              <td class="text-muted">{{ item.Best_Odds|default:"-" }}</td>
 
                             {% elif market == 'btts' %}
                               <td style="font-weight: 600;">{{ item.BTTS_Yes|default:"-" }}</td>
                               <td class="text-muted">{{ item.BTTS_No|default:"-" }}</td>
 
                             {% elif market == 'overunder' %}
-                              <td>{{ item.Over25|default:"-" }}</td>
-                              <td>{{ item.Under25|default:"-" }}</td>
+                              <td>{{ item.Over25|default:"-" }} <small class="text-muted">({{ item.Odds_Over25|default:"-" }})</small></td>
+                              <td>{{ item.Under25|default:"-" }} <small class="text-muted">({{ item.Odds_Under25|default:"-" }})</small></td>
                               <td class="{% if item.OU_Max_Value_Raw > 0 %}text-success{% else %}text-danger{% endif %}" style="font-weight: 600;">
                                   {{ item.OU_Max_Value|default:"-" }}
                               </td>
@@ -153,7 +153,7 @@
                                       {{ item.OU_Best_Bet|default:"-" }}
                                   </span>
                               </td>
-                              <td class="hide-mobile text-muted">{{ item.OU_Best_Odds|default:"-" }}</td>
+                              <td class="text-muted">{{ item.OU_Best_Odds|default:"-" }}</td>
                             {% endif %}
                         </tr>
                     {% empty %}

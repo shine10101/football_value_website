@@ -283,6 +283,10 @@
                                                 {{ pick.Max_Value }}
                                             </span>
                                         </div>
+                                        <div class="mt-2 d-flex justify-content-between" style="font-size: 0.7rem;">
+                                            <span class="text-muted">{{ pick.Max_Value_Result }}: <strong class="text-white">{{ pick.Best_Odds|default:"-" }}</strong></span>
+                                            <span class="text-muted">H {{ pick.Odds_H|default:"-" }} &middot; D {{ pick.Odds_D|default:"-" }} &middot; A {{ pick.Odds_A|default:"-" }}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -321,6 +325,10 @@
                                                 {{ pick.Max_Value }}
                                             </span>
                                         </div>
+                                        <div class="mt-2 d-flex justify-content-between" style="font-size: 0.7rem;">
+                                            <span class="text-muted">{{ pick.Max_Value_Result }}: <strong class="text-white">{{ pick.Best_Odds|default:"-" }}</strong></span>
+                                            <span class="text-muted">H {{ pick.Odds_H|default:"-" }} &middot; D {{ pick.Odds_D|default:"-" }} &middot; A {{ pick.Odds_A|default:"-" }}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -357,6 +365,7 @@
                                         <th class="hide-mobile">O2.5</th>
                                         <th>Value</th>
                                         <th class="hide-mobile">Best Bet</th>
+                                        <th>Odds</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -367,9 +376,9 @@
                                             <td class="hide-mobile">{{ item.Time }}</td>
                                             <td>{{ item.HomeTeam }}</td>
                                             <td>{{ item.AwayTeam }}</td>
-                                            <td>{{ item.HWin }}</td>
-                                            <td class="hide-mobile">{{ item.Draw }}</td>
-                                            <td>{{ item.AWin }}</td>
+                                            <td>{{ item.HWin }} <small class="text-muted">({{ item.Odds_H|default:"-" }})</small></td>
+                                            <td class="hide-mobile">{{ item.Draw }} <small class="text-muted">({{ item.Odds_D|default:"-" }})</small></td>
+                                            <td>{{ item.AWin }} <small class="text-muted">({{ item.Odds_A|default:"-" }})</small></td>
                                             <td>
                                                 <span class="badge badge-pill badge-{% if item.Pred_FTR == 'H' %}primary{% elif item.Pred_FTR == 'D' %}warning{% else %}info{% endif %}">
                                                     {% if item.Pred_FTR == 'H' %}HOME{% elif item.Pred_FTR == 'D' %}DRAW{% else %}AWAY{% endif %}
@@ -385,10 +394,11 @@
                                                     {{ item.Max_Value_Result }}
                                                 </span>
                                             </td>
+                                            <td class="text-muted">{{ item.Best_Odds|default:"-" }}</td>
                                         </tr>
                                     {% empty %}
                                         <tr>
-                                            <td colspan="13" class="text-center">No predictions available. Click "Refresh" to generate.</td>
+                                            <td colspan="14" class="text-center">No predictions available. Click "Refresh" to generate.</td>
                                         </tr>
                                     {% endfor %}
                                 </tbody>
