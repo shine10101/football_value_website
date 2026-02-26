@@ -541,25 +541,87 @@ def pages(request):
 
 
 def _get_base_performance_qs(request):
-    """Shared: parse league filter, return (queryset, league_filter, league_options)."""
+    """Shared: parse league + time filters, return (queryset, league_filter, league_options, time_context)."""
     from apps.home.models import Prediction
+    from urllib.parse import urlencode
 
     league_filter = request.GET.get('league', '')
     qs = Prediction.objects.filter(resolved=True)
     if league_filter:
         qs = qs.filter(div=league_filter)
 
+    # --- Time horizon filtering ---
+    period = request.GET.get('period', '')
+    date_from_str = request.GET.get('date_from', '')
+    date_to_str = request.GET.get('date_to', '')
+
+    today = datetime.date.today()
+    period_label = ''
+
+    if period == '7d':
+        qs = qs.filter(date__gte=today - datetime.timedelta(days=7))
+        period_label = 'Last 7 Days'
+    elif period == '30d':
+        qs = qs.filter(date__gte=today - datetime.timedelta(days=30))
+        period_label = 'Last 30 Days'
+    elif period == '90d':
+        qs = qs.filter(date__gte=today - datetime.timedelta(days=90))
+        period_label = 'Last 90 Days'
+    elif period == 'season':
+        if today.month >= 8:
+            season_start = datetime.date(today.year, 8, 1)
+        else:
+            season_start = datetime.date(today.year - 1, 8, 1)
+        qs = qs.filter(date__gte=season_start)
+        period_label = f'Season {season_start.year}/{season_start.year + 1}'
+    elif period == 'custom':
+        try:
+            if date_from_str:
+                qs = qs.filter(date__gte=datetime.date.fromisoformat(date_from_str))
+            if date_to_str:
+                qs = qs.filter(date__lte=datetime.date.fromisoformat(date_to_str))
+        except (ValueError, TypeError):
+            pass
+        parts = []
+        if date_from_str:
+            parts.append(f'From {date_from_str}')
+        if date_to_str:
+            parts.append(f'To {date_to_str}')
+        period_label = ' '.join(parts) if parts else 'Custom Range'
+
+    # League options (always from full dataset, not filtered by time)
     all_leagues = Prediction.objects.filter(resolved=True).values_list('div', flat=True).distinct()
     league_options = sorted(
         [{'code': l, 'name': LEAGUE_NAMES.get(l, l)} for l in all_leagues],
         key=lambda x: x['name'],
     )
-    return qs, league_filter, league_options
+
+    # Build a reusable query string for subnav/pagination links
+    filter_params = {}
+    if league_filter:
+        filter_params['league'] = league_filter
+    if period:
+        filter_params['period'] = period
+    if period == 'custom':
+        if date_from_str:
+            filter_params['date_from'] = date_from_str
+        if date_to_str:
+            filter_params['date_to'] = date_to_str
+
+    time_context = {
+        'period': period,
+        'period_label': period_label,
+        'date_from': date_from_str,
+        'date_to': date_to_str,
+        'filter_querystring': urlencode(filter_params),
+    }
+
+    return qs, league_filter, league_options, time_context
 
 
 def _get_accuracy_context(request):
     """Build context for the model accuracy page."""
-    qs, league_filter, league_options = _get_base_performance_qs(request)
+    qs, league_filter, league_options, time_context = _get_base_performance_qs(request)
 
     # Additional filters specific to accuracy results table
     team_filter = request.GET.get('team', '').strip()
@@ -703,12 +765,13 @@ def _get_accuracy_context(request):
         'team_filter': team_filter,
         'result_filter': result_filter,
         'league_options': league_options,
+        **time_context,
     }
 
 
 def _get_financial_context(request):
     """Build context for the financial analysis page."""
-    qs, league_filter, league_options = _get_base_performance_qs(request)
+    qs, league_filter, league_options, time_context = _get_base_performance_qs(request)
 
     strategy_filter = request.GET.get('strategy', '')
 
@@ -903,12 +966,13 @@ def _get_financial_context(request):
                 for t in threshold_levels
             ],
         }),
+        **time_context,
     }
 
 
 def _get_strategies_context(request):
     """Build context for the betting strategies page."""
-    qs, league_filter, league_options = _get_base_performance_qs(request)
+    qs, league_filter, league_options, time_context = _get_base_performance_qs(request)
 
     from apps.home.strategies import simulate_all
 
@@ -954,6 +1018,7 @@ def _get_strategies_context(request):
                 for s in strategy_results
             ],
         }),
+        **time_context,
     }
 
 
@@ -1000,7 +1065,7 @@ def performance_strategies(request):
 
 def _get_btts_accuracy_context(request):
     """Build context for the BTTS accuracy page."""
-    qs, league_filter, league_options = _get_base_performance_qs(request)
+    qs, league_filter, league_options, time_context = _get_base_performance_qs(request)
 
     # Only include predictions that have actual goals (needed to determine BTTS)
     filtered_qs = qs.filter(actual_fthg__isnull=False, actual_ftag__isnull=False)
@@ -1146,12 +1211,13 @@ def _get_btts_accuracy_context(request):
         'team_filter': team_filter,
         'result_filter': result_filter,
         'league_options': league_options,
+        **time_context,
     }
 
 
 def _get_ou_accuracy_context(request):
     """Build context for the Over/Under 2.5 accuracy page."""
-    qs, league_filter, league_options = _get_base_performance_qs(request)
+    qs, league_filter, league_options, time_context = _get_base_performance_qs(request)
 
     filtered_qs = qs.filter(actual_fthg__isnull=False, actual_ftag__isnull=False)
 
@@ -1322,12 +1388,13 @@ def _get_ou_accuracy_context(request):
         'team_filter': team_filter,
         'result_filter': result_filter,
         'league_options': league_options,
+        **time_context,
     }
 
 
 def _get_ou_financial_context(request):
     """Build context for the Over/Under 2.5 financial analysis page."""
-    qs, league_filter, league_options = _get_base_performance_qs(request)
+    qs, league_filter, league_options, time_context = _get_base_performance_qs(request)
     strategy_filter = request.GET.get('strategy', '')
 
     from apps.home.ou_strategies import simulate_ou_all, OU_STRATEGIES
@@ -1530,12 +1597,13 @@ def _get_ou_financial_context(request):
                 for t in threshold_levels
             ],
         }),
+        **time_context,
     }
 
 
 def _get_ou_strategies_context(request):
     """Build context for the O/U betting strategies page."""
-    qs, league_filter, league_options = _get_base_performance_qs(request)
+    qs, league_filter, league_options, time_context = _get_base_performance_qs(request)
 
     from apps.home.ou_strategies import simulate_ou_all
 
@@ -1583,6 +1651,7 @@ def _get_ou_strategies_context(request):
                 for s in strategy_results
             ],
         }),
+        **time_context,
     }
 
 

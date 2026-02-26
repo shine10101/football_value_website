@@ -7,21 +7,21 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if segment == 'performance_accuracy' %}active{% endif %}"
-                       href="{% url 'performance_accuracy' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
+                       href="{% url 'performance_accuracy' %}{% if filter_querystring %}?{{ filter_querystring }}{% endif %}"
                        style="font-size: 0.82rem; padding: 6px 12px;">
                         <i class="tim-icons icon-chart-bar-32 mr-1"></i> Accuracy
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if segment == 'performance_financial' %}active{% endif %}"
-                       href="{% url 'performance_financial' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
+                       href="{% url 'performance_financial' %}{% if filter_querystring %}?{{ filter_querystring }}{% endif %}"
                        style="font-size: 0.82rem; padding: 6px 12px;">
                         <i class="tim-icons icon-money-coins mr-1"></i> Financial
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if segment == 'performance_strategies' %}active{% endif %}"
-                       href="{% url 'performance_strategies' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
+                       href="{% url 'performance_strategies' %}{% if filter_querystring %}?{{ filter_querystring }}{% endif %}"
                        style="font-size: 0.82rem; padding: 6px 12px;">
                         <i class="tim-icons icon-puzzle-10 mr-1"></i> Strategies
                     </a>
@@ -31,7 +31,7 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if segment == 'performance_btts_accuracy' %}active{% endif %}"
-                       href="{% url 'performance_btts_accuracy' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
+                       href="{% url 'performance_btts_accuracy' %}{% if filter_querystring %}?{{ filter_querystring }}{% endif %}"
                        style="font-size: 0.82rem; padding: 6px 12px;">
                         <i class="tim-icons icon-chart-bar-32 mr-1"></i> Accuracy
                     </a>
@@ -41,21 +41,21 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if segment == 'performance_ou_accuracy' %}active{% endif %}"
-                       href="{% url 'performance_ou_accuracy' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
+                       href="{% url 'performance_ou_accuracy' %}{% if filter_querystring %}?{{ filter_querystring }}{% endif %}"
                        style="font-size: 0.82rem; padding: 6px 12px;">
                         <i class="tim-icons icon-chart-bar-32 mr-1"></i> Accuracy
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if segment == 'performance_ou_financial' %}active{% endif %}"
-                       href="{% url 'performance_ou_financial' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
+                       href="{% url 'performance_ou_financial' %}{% if filter_querystring %}?{{ filter_querystring }}{% endif %}"
                        style="font-size: 0.82rem; padding: 6px 12px;">
                         <i class="tim-icons icon-money-coins mr-1"></i> Financial
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {% if segment == 'performance_ou_strategies' %}active{% endif %}"
-                       href="{% url 'performance_ou_strategies' %}{% if league_filter %}?league={{ league_filter }}{% endif %}"
+                       href="{% url 'performance_ou_strategies' %}{% if filter_querystring %}?{{ filter_querystring }}{% endif %}"
                        style="font-size: 0.82rem; padding: 6px 12px;">
                         <i class="tim-icons icon-puzzle-10 mr-1"></i> Strategies
                     </a>
