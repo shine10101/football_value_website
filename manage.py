@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# This is a Django management script for the football value website project.
 """
 Copyright (c) 2019 - present AppSeed.us
 """
