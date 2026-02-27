@@ -1,11 +1,12 @@
 import logging
 from datetime import date
+from io import StringIO
+from urllib.request import urlopen
 
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-# Timeout in seconds for HTTP requests (via pd.read_csv → urllib)
 _REQUEST_TIMEOUT = 30
 
 
@@ -27,6 +28,16 @@ LEAGUE_CODES = [
 ]
 
 
+def _fetch_csv(url):
+    """Fetch a CSV from a URL and return a DataFrame."""
+    resp = urlopen(url, timeout=_REQUEST_TIMEOUT)
+    return pd.read_csv(
+        StringIO(resp.read().decode('utf-8-sig')),
+        parse_dates=['Date'],
+        date_format='%d/%m/%Y',
+    )
+
+
 def get_links(season=None):
     """Fetch historical data for all leagues for the given season."""
     if season is None:
@@ -38,12 +49,7 @@ def get_links(season=None):
     for league in LEAGUE_CODES:
         url = f'https://football-data.co.uk/mmz4281/{season}/{league}.csv'
         try:
-            df = pd.read_csv(
-                url,
-                parse_dates=['Date'],
-                date_format='%d/%m/%Y',
-                storage_options={'timeout': _REQUEST_TIMEOUT},
-            )
+            df = _fetch_csv(url)
             entry = (df,)
             data.append(entry)
             data_dct[league] = entry
@@ -71,12 +77,7 @@ def get_fixtures():
     url = 'https://www.football-data.co.uk/fixtures.csv'
     logger.info("Fetching fixtures from %s", url)
     try:
-        data = pd.read_csv(
-            url,
-            parse_dates=['Date'],
-            date_format='%d/%m/%Y',
-            storage_options={'timeout': _REQUEST_TIMEOUT},
-        )
+        data = _fetch_csv(url)
     except Exception as e:
         logger.error("Failed to fetch fixtures from %s: %s", url, e)
         raise
