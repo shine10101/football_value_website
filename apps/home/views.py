@@ -1701,6 +1701,8 @@ def _run_refresh():
         _refresh_state['finished_at'] = datetime.datetime.now().isoformat()
         # Invalidate cache so next page load picks up new data
         _csv_cache['mtime'] = None
+        _csv_cache['data'] = None
+        _csv_cache['df'] = None
 
 
 @require_POST
