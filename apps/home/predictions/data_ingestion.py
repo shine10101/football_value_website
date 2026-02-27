@@ -1,12 +1,12 @@
 import logging
 from datetime import date
-from io import StringIO
-from urllib.request import urlopen
-from urllib.error import URLError
 
 import pandas as pd
 
 logger = logging.getLogger(__name__)
+
+# Timeout in seconds for HTTP requests (via pd.read_csv → urllib)
+_REQUEST_TIMEOUT = 30
 
 
 def _current_season():
@@ -34,35 +34,62 @@ def get_links(season=None):
 
     data = []
     data_dct = {}
+    failed = []
     for league in LEAGUE_CODES:
         url = f'https://football-data.co.uk/mmz4281/{season}/{league}.csv'
         try:
-            df = pd.read_csv(url, parse_dates=['Date'], date_format='%d/%m/%Y')
+            df = pd.read_csv(
+                url,
+                parse_dates=['Date'],
+                date_format='%d/%m/%Y',
+                storage_options={'timeout': _REQUEST_TIMEOUT},
+            )
             entry = (df,)
             data.append(entry)
             data_dct[league] = entry
-        except Exception:
+        except Exception as e:
+            failed.append(league)
+            logger.warning("Failed to fetch league %s from %s: %s", league, url, e)
             continue
+
+    if failed:
+        logger.warning(
+            "Failed to fetch %d/%d leagues: %s",
+            len(failed), len(LEAGUE_CODES), ', '.join(failed),
+        )
+    logger.info("Successfully fetched %d/%d leagues", len(data_dct), len(LEAGUE_CODES))
 
     return data, data_dct
 
 
 def get_fixtures():
-    """Fetch upcoming fixtures with betting odds."""
+    """Fetch upcoming fixtures with betting odds.
+
+    Returns only fixtures dated today or later. Raises on failure so the
+    caller can decide how to handle it.
+    """
     url = 'https://www.football-data.co.uk/fixtures.csv'
     logger.info("Fetching fixtures from %s", url)
     try:
-        resp = urlopen(url, timeout=30)
-        data = pd.read_csv(StringIO(resp.read().decode('utf-8-sig')),
-                           parse_dates=['Date'], date_format='%d/%m/%Y')
+        data = pd.read_csv(
+            url,
+            parse_dates=['Date'],
+            date_format='%d/%m/%Y',
+            storage_options={'timeout': _REQUEST_TIMEOUT},
+        )
     except Exception as e:
         logger.error("Failed to fetch fixtures from %s: %s", url, e)
         raise
 
-    # Filter to upcoming fixtures only (today and future)
+    total = len(data)
+
+    # Filter to upcoming fixtures only
     today = pd.Timestamp(date.today())
     if 'Date' in data.columns:
         data = data[data['Date'] >= today].reset_index(drop=True)
 
-    logger.info("Fetched %d upcoming fixtures", len(data))
+    logger.info(
+        "Fetched %d fixtures (%d upcoming from today onwards)",
+        total, len(data),
+    )
     return data

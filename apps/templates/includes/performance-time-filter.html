@@ -1,0 +1,91 @@
+{# Time horizon quick-select buttons + optional custom date range #}
+<div class="row">
+    <div class="col-12">
+        <div style="background: rgba(255,255,255,0.04); border-radius: 0.4285rem; padding: 8px 15px; margin-bottom: 15px;">
+            <div class="d-flex flex-wrap align-items-center" style="gap: 6px;">
+                <span style="font-size: 0.68rem; color: rgba(255,255,255,0.35); margin-right: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i class="tim-icons icon-calendar-60 mr-1"></i>Period
+                </span>
+
+                <a href="?{% if league_filter %}league={{ league_filter }}{% endif %}"
+                   class="btn btn-sm {% if not period %}btn-primary{% else %}btn-link{% endif %}"
+                   style="font-size: 0.75rem; padding: 4px 10px; {% if period %}color: rgba(255,255,255,0.6);{% endif %}">
+                    All Time
+                </a>
+                <a href="?period=7d{% if league_filter %}&league={{ league_filter }}{% endif %}"
+                   class="btn btn-sm {% if period == '7d' %}btn-primary{% else %}btn-link{% endif %}"
+                   style="font-size: 0.75rem; padding: 4px 10px; {% if period != '7d' %}color: rgba(255,255,255,0.6);{% endif %}">
+                    7 Days
+                </a>
+                <a href="?period=30d{% if league_filter %}&league={{ league_filter }}{% endif %}"
+                   class="btn btn-sm {% if period == '30d' %}btn-primary{% else %}btn-link{% endif %}"
+                   style="font-size: 0.75rem; padding: 4px 10px; {% if period != '30d' %}color: rgba(255,255,255,0.6);{% endif %}">
+                    30 Days
+                </a>
+                <a href="?period=90d{% if league_filter %}&league={{ league_filter }}{% endif %}"
+                   class="btn btn-sm {% if period == '90d' %}btn-primary{% else %}btn-link{% endif %}"
+                   style="font-size: 0.75rem; padding: 4px 10px; {% if period != '90d' %}color: rgba(255,255,255,0.6);{% endif %}">
+                    90 Days
+                </a>
+                <a href="?period=season{% if league_filter %}&league={{ league_filter }}{% endif %}"
+                   class="btn btn-sm {% if period == 'season' %}btn-primary{% else %}btn-link{% endif %}"
+                   style="font-size: 0.75rem; padding: 4px 10px; {% if period != 'season' %}color: rgba(255,255,255,0.6);{% endif %}">
+                    This Season
+                </a>
+
+                <span style="border-left: 1px solid rgba(255,255,255,0.1); height: 20px; margin: 0 4px;"></span>
+
+                <button type="button" id="customPeriodToggle"
+                        class="btn btn-sm {% if period == 'custom' %}btn-info{% else %}btn-link{% endif %}"
+                        style="font-size: 0.75rem; padding: 4px 10px; {% if period != 'custom' %}color: rgba(255,255,255,0.6);{% endif %}">
+                    Custom
+                </button>
+            </div>
+
+            {# Custom date range row (hidden by default, shown when Custom is clicked or active) #}
+            <div id="customPeriodRow" style="{% if period != 'custom' %}display: none;{% endif %} margin-top: 10px;">
+                <form method="get" class="d-flex flex-wrap align-items-end" style="gap: 8px;">
+                    {% if league_filter %}
+                    <input type="hidden" name="league" value="{{ league_filter }}">
+                    {% endif %}
+                    <input type="hidden" name="period" value="custom">
+                    <div>
+                        <label style="font-size: 0.68rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">From</label>
+                        <input type="date" name="date_from" class="form-control form-control-sm"
+                               value="{{ date_from }}"
+                               style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.82rem; width: 150px;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.68rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">To</label>
+                        <input type="date" name="date_to" class="form-control form-control-sm"
+                               value="{{ date_to }}"
+                               style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.82rem; width: 150px;">
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-info btn-sm" style="font-size: 0.75rem; padding: 4px 14px;">Apply</button>
+                    </div>
+                </form>
+            </div>
+
+            {# Active time filter badge #}
+            {% if period_label %}
+            <div style="margin-top: 8px;">
+                <span class="badge badge-pill" style="background: rgba(186,84,245,0.3); color: #ba54f5; font-size: 0.72rem; padding: 0.4em 0.8em;">
+                    <i class="tim-icons icon-calendar-60 mr-1"></i>{{ period_label }}
+                </span>
+                <a href="?{% if league_filter %}league={{ league_filter }}{% endif %}"
+                   style="font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-left: 8px;">
+                    Clear time filter
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('customPeriodToggle').addEventListener('click', function() {
+    var row = document.getElementById('customPeriodRow');
+    row.style.display = row.style.display === 'none' ? '' : 'none';
+});
+</script>

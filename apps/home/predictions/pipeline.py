@@ -156,11 +156,11 @@ def run_predictions():
         logger.warning("No upcoming fixtures found — nothing to predict")
         return pd.DataFrame()
 
-    logger.info("Generating predictions...")
+    logger.info("Generating predictions for %d fixtures...", len(fixtures))
     pred = _fixture_predictions(fixtures, data_dct)
 
     if pred.empty:
-        logger.warning("No predictions generated")
+        logger.warning("No predictions generated (no matching league data?)")
         return pred
 
     logger.info("Calculating value...")

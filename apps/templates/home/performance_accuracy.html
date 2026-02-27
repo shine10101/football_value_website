@@ -29,12 +29,16 @@
 
     <div class="content">
         {% include 'includes/performance-subnav.html' %}
+        {% include 'includes/performance-time-filter.html' %}
 
         <!-- League Filter Bar -->
         <div class="row">
             <div class="col-12">
                 <div class="filter-bar" style="margin-bottom: 25px;">
                     <form method="get" class="row align-items-end">
+                        {% if period %}<input type="hidden" name="period" value="{{ period }}">{% endif %}
+                        {% if period == 'custom' and date_from %}<input type="hidden" name="date_from" value="{{ date_from }}">{% endif %}
+                        {% if period == 'custom' and date_to %}<input type="hidden" name="date_to" value="{{ date_to }}">{% endif %}
                         <div class="col-md-6 col-sm-6 mb-2">
                             <label style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">League</label>
                             <select name="league" class="form-control form-control-sm">
@@ -53,7 +57,7 @@
                         <span class="badge badge-pill" style="background: rgba(29,140,248,0.3); color: #1d8cf8; font-size: 0.72rem; padding: 0.4em 0.8em;">
                             {% for opt in league_options %}{% if opt.code == league_filter %}{{ opt.name }}{% endif %}{% endfor %}
                         </span>
-                        <a href="?" style="font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-left: 8px;">Clear filter</a>
+                        <a href="?{% if period %}period={{ period }}{% endif %}{% if period == 'custom' and date_from %}&date_from={{ date_from }}{% endif %}{% if period == 'custom' and date_to %}&date_to={{ date_to }}{% endif %}" style="font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-left: 8px;">Clear filter</a>
                     </div>
                     {% endif %}
                 </div>
@@ -288,6 +292,9 @@
                         <!-- Filter Bar -->
                         <div class="filter-bar">
                             <form method="get" class="row align-items-end">
+                                {% if period %}<input type="hidden" name="period" value="{{ period }}">{% endif %}
+                                {% if period == 'custom' and date_from %}<input type="hidden" name="date_from" value="{{ date_from }}">{% endif %}
+                                {% if period == 'custom' and date_to %}<input type="hidden" name="date_to" value="{{ date_to }}">{% endif %}
                                 <div class="col-md-3 col-sm-6 mb-2">
                                     <label style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">League</label>
                                     <select name="league" class="form-control form-control-sm">
@@ -383,7 +390,7 @@
                             <ul class="pagination justify-content-center">
                                 {% if results_page.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ results_page.previous_page_number }}{% if league_filter %}&league={{ league_filter }}{% endif %}{% if team_filter %}&team={{ team_filter }}{% endif %}{% if result_filter %}&result={{ result_filter }}{% endif %}">&laquo;</a>
+                                    <a class="page-link" href="?page={{ results_page.previous_page_number }}{% if league_filter %}&league={{ league_filter }}{% endif %}{% if team_filter %}&team={{ team_filter }}{% endif %}{% if result_filter %}&result={{ result_filter }}{% endif %}{% if period %}&period={{ period }}{% endif %}{% if period == 'custom' and date_from %}&date_from={{ date_from }}{% endif %}{% if period == 'custom' and date_to %}&date_to={{ date_to }}{% endif %}">&laquo;</a>
                                 </li>
                                 {% endif %}
 
@@ -392,14 +399,14 @@
                                     <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                                     {% elif num > results_page.number|add:'-3' and num < results_page.number|add:'3' %}
                                     <li class="page-item">
-                                        <a class="page-link" href="?page={{ num }}{% if league_filter %}&league={{ league_filter }}{% endif %}{% if team_filter %}&team={{ team_filter }}{% endif %}{% if result_filter %}&result={{ result_filter }}{% endif %}">{{ num }}</a>
+                                        <a class="page-link" href="?page={{ num }}{% if league_filter %}&league={{ league_filter }}{% endif %}{% if team_filter %}&team={{ team_filter }}{% endif %}{% if result_filter %}&result={{ result_filter }}{% endif %}{% if period %}&period={{ period }}{% endif %}{% if period == 'custom' and date_from %}&date_from={{ date_from }}{% endif %}{% if period == 'custom' and date_to %}&date_to={{ date_to }}{% endif %}">{{ num }}</a>
                                     </li>
                                     {% endif %}
                                 {% endfor %}
 
                                 {% if results_page.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ results_page.next_page_number }}{% if league_filter %}&league={{ league_filter }}{% endif %}{% if team_filter %}&team={{ team_filter }}{% endif %}{% if result_filter %}&result={{ result_filter }}{% endif %}">&raquo;</a>
+                                    <a class="page-link" href="?page={{ results_page.next_page_number }}{% if league_filter %}&league={{ league_filter }}{% endif %}{% if team_filter %}&team={{ team_filter }}{% endif %}{% if result_filter %}&result={{ result_filter }}{% endif %}{% if period %}&period={{ period }}{% endif %}{% if period == 'custom' and date_from %}&date_from={{ date_from }}{% endif %}{% if period == 'custom' and date_to %}&date_to={{ date_to }}{% endif %}">&raquo;</a>
                                 </li>
                                 {% endif %}
                             </ul>

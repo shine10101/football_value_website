@@ -6,6 +6,7 @@ import logging
 import os
 import threading
 from collections import defaultdict
+from fractions import Fraction
 
 from django import template
 from django.conf import settings
@@ -50,6 +51,18 @@ _csv_cache = {'mtime': None, 'data': None, 'df': None}
 
 # Track refresh state
 _refresh_state = {'running': False, 'error': None, 'finished_at': None}
+
+
+def _decimal_to_fraction(decimal_odds):
+    """Convert decimal odds to fractional notation (e.g. 2.50 → 3/2)."""
+    try:
+        val = float(decimal_odds)
+    except (ValueError, TypeError):
+        return '-'
+    if pd.isna(val) or val <= 1:
+        return '-'
+    frac = Fraction(val - 1).limit_denominator(20)
+    return f"{frac.numerator}/{frac.denominator}"
 
 
 def _get_team_accuracy_map():
@@ -186,6 +199,67 @@ def _compute_confidence_flags(raw_df, accuracy_map):
     return flags
 
 
+def _compute_ou_confidence_flags(raw_df, accuracy_map):
+    """Check each CSV row against O/U confidence pick criteria.
+
+    Applies filters: OU value > 0, decisive probability, predicted goals
+    alignment, odds range, league predictability.
+
+    Returns a list of booleans, one per row.
+    """
+    flags = []
+    for _, row in raw_df.iterrows():
+        # 0. OU Value > 0
+        ou_value = row.get('OU_Max_Value', 0) or 0
+        if ou_value <= 0:
+            flags.append(False)
+            continue
+
+        best_bet = row.get('OU_Best_Bet', '')
+        if best_bet not in ('Over 2.5', 'Under 2.5'):
+            flags.append(False)
+            continue
+
+        # 1. Decisive probability: bet direction >= 55% with >= 15pp margin
+        over_prob = row.get('Over25', 0) or 0
+        under_prob = row.get('Under25', 0) or 0
+        if best_bet == 'Over 2.5':
+            bet_prob = over_prob
+            margin = over_prob - under_prob
+        else:
+            bet_prob = under_prob
+            margin = under_prob - over_prob
+
+        if bet_prob < 0.55 or margin < 0.15:
+            flags.append(False)
+            continue
+
+        # 2. Predicted goals alignment
+        pred_total = (row.get('Pred_FTHG', 0) or 0) + (row.get('Pred_FTAG', 0) or 0)
+        if best_bet == 'Over 2.5' and pred_total <= 2.5:
+            flags.append(False)
+            continue
+        if best_bet == 'Under 2.5' and pred_total >= 2.5:
+            flags.append(False)
+            continue
+
+        # 3. Odds range: 1.3 - 3.5
+        ou_odds = row.get('OU_Best_Odds', None)
+        if ou_odds is None or not (1.3 <= ou_odds <= 3.5):
+            flags.append(False)
+            continue
+
+        # 4. League predictability: >= 40% accuracy, min 20 matches
+        div = row.get('Div', '')
+        league_stats = accuracy_map.get('__league__' + div, {'total': 0, 'accuracy': 0})
+        if not (league_stats['total'] >= 20 and league_stats.get('accuracy', 0) >= 40.0):
+            flags.append(False)
+            continue
+
+        flags.append(True)
+    return flags
+
+
 def _load_predictions():
     """Load predictions from CSV, using a mtime-based cache."""
     path = settings.PREDICTIONS_CSV
@@ -205,10 +279,17 @@ def _load_predictions():
                     'BTTS_Yes', 'BTTS_No', 'Over25', 'Under25',
                     'Over25_Value', 'Under25_Value',
                     'OU_Max_Value', 'OU_Best_Bet', 'OU_Best_Odds',
-                    'Best_Odds', 'Odds_Over25', 'Odds_Under25',
+                    'Best_Odds', 'Odds_H', 'Odds_D', 'Odds_A',
+                    'Odds_Over25', 'Odds_Under25',
                     'Max_Value', 'Max_Value_Result', 'Pred_FTHG', 'Pred_FTAG']
         available = [c for c in columns if c in df.columns]
         df = df[available]
+
+        # Filter out past predictions (games that have already taken place)
+        if 'Date' in df.columns:
+            today = datetime.date.today()
+            parsed_dates = pd.to_datetime(df['Date'], dayfirst=True, errors='coerce').dt.date
+            df = df[parsed_dates >= today].reset_index(drop=True)
 
         # Add league names
         if 'Div' in df.columns:
@@ -237,10 +318,11 @@ def _load_predictions():
             df['OU_Max_Value_Raw'] = df['OU_Max_Value']
             df['OU_Max_Value'] = (df['OU_Max_Value'] * 100).round(1).astype(str) + '%'
 
-        # Round odds to 2 decimal places
-        for col in ['Best_Odds', 'Odds_Over25', 'Odds_Under25', 'OU_Best_Odds']:
+        # Convert odds to fractional notation
+        for col in ['Odds_H', 'Odds_D', 'Odds_A', 'Best_Odds',
+                     'Odds_Over25', 'Odds_Under25', 'OU_Best_Odds']:
             if col in df.columns:
-                df[col] = df[col].round(2)
+                df[col] = df[col].apply(_decimal_to_fraction)
 
         # Keep raw Max_Value for sorting (already sorted in CSV), then format
         if 'Max_Value' in df.columns:
@@ -275,9 +357,12 @@ def _get_index_context():
     # Compute confidence picks
     confidence_picks = []
     confidence_pick_count = 0
+    ou_confidence_picks = []
+    ou_confidence_pick_count = 0
     if raw_df is not None and not raw_df.empty:
         team_accuracy = _get_team_accuracy_map()
         confidence_flags = _compute_confidence_flags(raw_df, team_accuracy)
+        ou_confidence_flags = _compute_ou_confidence_flags(raw_df, team_accuracy)
         for i, row in enumerate(data):
             if i < len(confidence_flags):
                 row['is_confidence_pick'] = confidence_flags[i]
@@ -285,6 +370,19 @@ def _get_index_context():
                     confidence_pick_count += 1
                     if len(confidence_picks) < 5:
                         confidence_picks.append(row)
+            if i < len(ou_confidence_flags):
+                row['is_ou_confidence_pick'] = ou_confidence_flags[i]
+                if ou_confidence_flags[i]:
+                    ou_confidence_pick_count += 1
+                    if len(ou_confidence_picks) < 5:
+                        ou_confidence_picks.append(row)
+
+    # O/U top picks: sorted by OU_Max_Value descending, positive value only
+    ou_top_picks = sorted(
+        [d for d in data if (d.get('OU_Max_Value_Raw') or 0) > 0],
+        key=lambda d: d.get('OU_Max_Value_Raw') or 0,
+        reverse=True,
+    )[:5]
 
     context = {
         'total_predictions': len(data),
@@ -293,6 +391,9 @@ def _get_index_context():
         'top_picks': data[:5],
         'confidence_picks': confidence_picks,
         'confidence_pick_count': confidence_pick_count,
+        'ou_top_picks': ou_top_picks,
+        'ou_confidence_picks': ou_confidence_picks,
+        'ou_confidence_pick_count': ou_confidence_pick_count,
         'refresh_running': _refresh_state['running'],
     }
 
@@ -440,25 +541,87 @@ def pages(request):
 
 
 def _get_base_performance_qs(request):
-    """Shared: parse league filter, return (queryset, league_filter, league_options)."""
+    """Shared: parse league + time filters, return (queryset, league_filter, league_options, time_context)."""
     from apps.home.models import Prediction
+    from urllib.parse import urlencode
 
     league_filter = request.GET.get('league', '')
     qs = Prediction.objects.filter(resolved=True)
     if league_filter:
         qs = qs.filter(div=league_filter)
 
+    # --- Time horizon filtering ---
+    period = request.GET.get('period', '')
+    date_from_str = request.GET.get('date_from', '')
+    date_to_str = request.GET.get('date_to', '')
+
+    today = datetime.date.today()
+    period_label = ''
+
+    if period == '7d':
+        qs = qs.filter(date__gte=today - datetime.timedelta(days=7))
+        period_label = 'Last 7 Days'
+    elif period == '30d':
+        qs = qs.filter(date__gte=today - datetime.timedelta(days=30))
+        period_label = 'Last 30 Days'
+    elif period == '90d':
+        qs = qs.filter(date__gte=today - datetime.timedelta(days=90))
+        period_label = 'Last 90 Days'
+    elif period == 'season':
+        if today.month >= 8:
+            season_start = datetime.date(today.year, 8, 1)
+        else:
+            season_start = datetime.date(today.year - 1, 8, 1)
+        qs = qs.filter(date__gte=season_start)
+        period_label = f'Season {season_start.year}/{season_start.year + 1}'
+    elif period == 'custom':
+        try:
+            if date_from_str:
+                qs = qs.filter(date__gte=datetime.date.fromisoformat(date_from_str))
+            if date_to_str:
+                qs = qs.filter(date__lte=datetime.date.fromisoformat(date_to_str))
+        except (ValueError, TypeError):
+            pass
+        parts = []
+        if date_from_str:
+            parts.append(f'From {date_from_str}')
+        if date_to_str:
+            parts.append(f'To {date_to_str}')
+        period_label = ' '.join(parts) if parts else 'Custom Range'
+
+    # League options (always from full dataset, not filtered by time)
     all_leagues = Prediction.objects.filter(resolved=True).values_list('div', flat=True).distinct()
     league_options = sorted(
         [{'code': l, 'name': LEAGUE_NAMES.get(l, l)} for l in all_leagues],
         key=lambda x: x['name'],
     )
-    return qs, league_filter, league_options
+
+    # Build a reusable query string for subnav/pagination links
+    filter_params = {}
+    if league_filter:
+        filter_params['league'] = league_filter
+    if period:
+        filter_params['period'] = period
+    if period == 'custom':
+        if date_from_str:
+            filter_params['date_from'] = date_from_str
+        if date_to_str:
+            filter_params['date_to'] = date_to_str
+
+    time_context = {
+        'period': period,
+        'period_label': period_label,
+        'date_from': date_from_str,
+        'date_to': date_to_str,
+        'filter_querystring': urlencode(filter_params),
+    }
+
+    return qs, league_filter, league_options, time_context
 
 
 def _get_accuracy_context(request):
     """Build context for the model accuracy page."""
-    qs, league_filter, league_options = _get_base_performance_qs(request)
+    qs, league_filter, league_options, time_context = _get_base_performance_qs(request)
 
     # Additional filters specific to accuracy results table
     team_filter = request.GET.get('team', '').strip()
@@ -602,12 +765,13 @@ def _get_accuracy_context(request):
         'team_filter': team_filter,
         'result_filter': result_filter,
         'league_options': league_options,
+        **time_context,
     }
 
 
 def _get_financial_context(request):
     """Build context for the financial analysis page."""
-    qs, league_filter, league_options = _get_base_performance_qs(request)
+    qs, league_filter, league_options, time_context = _get_base_performance_qs(request)
 
     strategy_filter = request.GET.get('strategy', '')
 
@@ -802,12 +966,13 @@ def _get_financial_context(request):
                 for t in threshold_levels
             ],
         }),
+        **time_context,
     }
 
 
 def _get_strategies_context(request):
     """Build context for the betting strategies page."""
-    qs, league_filter, league_options = _get_base_performance_qs(request)
+    qs, league_filter, league_options, time_context = _get_base_performance_qs(request)
 
     from apps.home.strategies import simulate_all
 
@@ -853,7 +1018,15 @@ def _get_strategies_context(request):
                 for s in strategy_results
             ],
         }),
+        **time_context,
     }
+
+
+@login_required(login_url="/login/")
+def methodology(request):
+    """Static page explaining the prediction methodology."""
+    context = {'segment': 'methodology'}
+    return HttpResponse(loader.get_template('home/methodology.html').render(context, request))
 
 
 @login_required(login_url="/login/")
@@ -892,7 +1065,7 @@ def performance_strategies(request):
 
 def _get_btts_accuracy_context(request):
     """Build context for the BTTS accuracy page."""
-    qs, league_filter, league_options = _get_base_performance_qs(request)
+    qs, league_filter, league_options, time_context = _get_base_performance_qs(request)
 
     # Only include predictions that have actual goals (needed to determine BTTS)
     filtered_qs = qs.filter(actual_fthg__isnull=False, actual_ftag__isnull=False)
@@ -1038,12 +1211,13 @@ def _get_btts_accuracy_context(request):
         'team_filter': team_filter,
         'result_filter': result_filter,
         'league_options': league_options,
+        **time_context,
     }
 
 
 def _get_ou_accuracy_context(request):
     """Build context for the Over/Under 2.5 accuracy page."""
-    qs, league_filter, league_options = _get_base_performance_qs(request)
+    qs, league_filter, league_options, time_context = _get_base_performance_qs(request)
 
     filtered_qs = qs.filter(actual_fthg__isnull=False, actual_ftag__isnull=False)
 
@@ -1214,12 +1388,13 @@ def _get_ou_accuracy_context(request):
         'team_filter': team_filter,
         'result_filter': result_filter,
         'league_options': league_options,
+        **time_context,
     }
 
 
 def _get_ou_financial_context(request):
     """Build context for the Over/Under 2.5 financial analysis page."""
-    qs, league_filter, league_options = _get_base_performance_qs(request)
+    qs, league_filter, league_options, time_context = _get_base_performance_qs(request)
     strategy_filter = request.GET.get('strategy', '')
 
     from apps.home.ou_strategies import simulate_ou_all, OU_STRATEGIES
@@ -1422,12 +1597,13 @@ def _get_ou_financial_context(request):
                 for t in threshold_levels
             ],
         }),
+        **time_context,
     }
 
 
 def _get_ou_strategies_context(request):
     """Build context for the O/U betting strategies page."""
-    qs, league_filter, league_options = _get_base_performance_qs(request)
+    qs, league_filter, league_options, time_context = _get_base_performance_qs(request)
 
     from apps.home.ou_strategies import simulate_ou_all
 
@@ -1475,6 +1651,7 @@ def _get_ou_strategies_context(request):
                 for s in strategy_results
             ],
         }),
+        **time_context,
     }
 
 
@@ -1524,6 +1701,8 @@ def _run_refresh():
         _refresh_state['finished_at'] = datetime.datetime.now().isoformat()
         # Invalidate cache so next page load picks up new data
         _csv_cache['mtime'] = None
+        _csv_cache['data'] = None
+        _csv_cache['df'] = None
 
 
 @require_POST

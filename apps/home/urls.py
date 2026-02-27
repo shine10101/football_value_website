@@ -25,6 +25,9 @@ urlpatterns = [
     path('performance/overunder/financial/', views.performance_ou_financial, name='performance_ou_financial'),
     path('performance/overunder/strategies/', views.performance_ou_strategies, name='performance_ou_strategies'),
 
+    # Methodology
+    path('methodology/', views.methodology, name='methodology'),
+
     # Prediction refresh API
     path('api/refresh/', views.refresh_predictions, name='refresh_predictions'),
     path('api/refresh/status/', views.refresh_status, name='refresh_status'),
