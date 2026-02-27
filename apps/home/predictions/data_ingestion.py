@@ -1,5 +1,12 @@
-import pandas as pd
+import logging
 from datetime import date
+from io import StringIO
+from urllib.request import urlopen
+from urllib.error import URLError
+
+import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 
 def _current_season():
@@ -43,5 +50,19 @@ def get_links(season=None):
 def get_fixtures():
     """Fetch upcoming fixtures with betting odds."""
     url = 'https://www.football-data.co.uk/fixtures.csv'
-    data = pd.read_csv(url, parse_dates=['Date'], date_format='%d/%m/%Y')
+    logger.info("Fetching fixtures from %s", url)
+    try:
+        resp = urlopen(url, timeout=30)
+        data = pd.read_csv(StringIO(resp.read().decode('utf-8-sig')),
+                           parse_dates=['Date'], date_format='%d/%m/%Y')
+    except Exception as e:
+        logger.error("Failed to fetch fixtures from %s: %s", url, e)
+        raise
+
+    # Filter to upcoming fixtures only (today and future)
+    today = pd.Timestamp(date.today())
+    if 'Date' in data.columns:
+        data = data[data['Date'] >= today].reset_index(drop=True)
+
+    logger.info("Fetched %d upcoming fixtures", len(data))
     return data
