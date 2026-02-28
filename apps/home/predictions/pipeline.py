@@ -146,11 +146,7 @@ def run_predictions():
     resolve_results(data_dct)
 
     logger.info("Fetching upcoming fixtures...")
-    try:
-        fixtures = data_ingestion.get_fixtures()
-    except Exception:
-        logger.error("Could not fetch fixtures — aborting prediction generation")
-        return pd.DataFrame()
+    fixtures = data_ingestion.get_fixtures()
 
     if fixtures.empty:
         logger.warning("No upcoming fixtures found — nothing to predict")
