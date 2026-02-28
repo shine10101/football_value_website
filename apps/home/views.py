@@ -52,6 +52,10 @@ _csv_cache = {'mtime': None, 'data': None, 'df': None}
 # Track refresh state
 _refresh_state = {'running': False, 'error': None, 'finished_at': None}
 
+# External predictions cache (in-memory, refreshed on demand)
+_ext_cache = {'data': None, 'fetched_at': None, 'forebet': [], 'footystats': []}
+_ext_refresh_state = {'running': False, 'error': None, 'finished_at': None}
+
 
 def _decimal_to_fraction(decimal_odds):
     """Convert decimal odds to fractional notation (e.g. 2.50 → 3/2)."""
@@ -1726,4 +1730,202 @@ def refresh_status(request):
         'running': _refresh_state['running'],
         'error': _refresh_state['error'],
         'finished_at': _refresh_state['finished_at'],
+    })
+
+
+# ---------------------------------------------------------------------------
+# External predictions
+# ---------------------------------------------------------------------------
+
+def _run_ext_refresh():
+    """Background thread target for scraping external predictions."""
+    try:
+        from apps.home.predictions.scrapers.forebet import ForebetScraper
+        from apps.home.predictions.scrapers.footystats import FootyStatsScraper
+
+        forebet_data = ForebetScraper().scrape_predictions()
+        footystats_data = FootyStatsScraper().scrape_predictions()
+
+        _ext_cache['forebet'] = forebet_data
+        _ext_cache['footystats'] = footystats_data
+        _ext_cache['data'] = forebet_data + footystats_data
+        _ext_cache['fetched_at'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+        _ext_refresh_state['error'] = None
+    except Exception as e:
+        logger.exception("External predictions refresh failed")
+        _ext_refresh_state['error'] = str(e)
+    finally:
+        _ext_refresh_state['running'] = False
+        _ext_refresh_state['finished_at'] = datetime.datetime.now().isoformat()
+
+
+def _get_external_context(request):
+    """Build context for the external predictions page."""
+    # Load our predictions from CSV for side-by-side comparison
+    our_preds = _load_predictions()
+
+    # Build lookup: (home_lower, away_lower) -> our prediction dict
+    our_lookup = {}
+    for row in our_preds:
+        key = (row.get('HomeTeam', '').lower(), row.get('AwayTeam', '').lower())
+        our_lookup[key] = row
+
+    forebet_data = _ext_cache.get('forebet') or []
+    footystats_data = _ext_cache.get('footystats') or []
+
+    # Index external predictions by normalized team key
+    forebet_by_key = {}
+    for p in forebet_data:
+        key = (p['home_team_normalized'].lower(), p['away_team_normalized'].lower())
+        forebet_by_key[key] = p
+
+    footystats_by_key = {}
+    for p in footystats_data:
+        key = (p['home_team_normalized'].lower(), p['away_team_normalized'].lower())
+        footystats_by_key[key] = p
+
+    # Collect all unique match keys
+    all_keys = set()
+    all_keys.update(our_lookup.keys())
+    all_keys.update(forebet_by_key.keys())
+    all_keys.update(footystats_by_key.keys())
+
+    # League filter
+    league_filter = request.GET.get('league', '')
+
+    matches = []
+    matched_count = 0
+    for key in all_keys:
+        our = our_lookup.get(key)
+        fb = forebet_by_key.get(key)
+        fs = footystats_by_key.get(key)
+
+        # Determine display team names (prefer our canonical names)
+        if our:
+            home = our.get('HomeTeam', key[0])
+            away = our.get('AwayTeam', key[1])
+            league = our.get('Div', '')
+            league_name = our.get('LeagueName', league)
+            match_date = our.get('Date', '')
+            match_time = our.get('Time', '')
+        elif fb:
+            home = fb['home_team_normalized']
+            away = fb['away_team_normalized']
+            league = fb['league']
+            league_name = fb['league']
+            match_date = str(fb['date']) if fb['date'] else ''
+            match_time = fb['time']
+        else:
+            home = fs['home_team_normalized']
+            away = fs['away_team_normalized']
+            league = fs['league']
+            league_name = fs['league']
+            match_date = ''
+            match_time = ''
+
+        # Apply league filter
+        if league_filter:
+            if our:
+                if our.get('Div', '') != league_filter:
+                    continue
+            else:
+                continue  # Can't filter non-CSV matches by div code
+
+        sources = sum([our is not None, fb is not None, fs is not None])
+        if sources > 1:
+            matched_count += 1
+
+        match_entry = {
+            'home_team': home,
+            'away_team': away,
+            'league': league,
+            'league_name': league_name,
+            'date': match_date,
+            'time': match_time,
+            'has_our': our is not None,
+            'has_forebet': fb is not None,
+            'has_footystats': fs is not None,
+            # Our model data
+            'our_h_prob': our.get('HWin', '') if our else '',
+            'our_d_prob': our.get('Draw', '') if our else '',
+            'our_a_prob': our.get('AWin', '') if our else '',
+            'our_score': f"{our.get('Pred_FTHG', '')}-{our.get('Pred_FTAG', '')}" if our and our.get('Pred_FTHG') is not None else '',
+            'our_result': our.get('Pred_FTR', '') if our else '',
+            'our_value': our.get('Max_Value', '') if our else '',
+            # Forebet data
+            'fb_h_prob': f"{fb['home_prob']}%" if fb and fb.get('home_prob') is not None else '',
+            'fb_d_prob': f"{fb['draw_prob']}%" if fb and fb.get('draw_prob') is not None else '',
+            'fb_a_prob': f"{fb['away_prob']}%" if fb and fb.get('away_prob') is not None else '',
+            'fb_score': f"{fb['pred_score_home']}-{fb['pred_score_away']}" if fb and fb.get('pred_score_home') is not None else '',
+            'fb_result': fb['pred_result'] if fb else '',
+            # FootyStats data
+            'fs_result': fs['pred_result'] if fs and fs.get('pred_result') else '',
+            'fs_best_bet': fs['best_bet'] if fs and fs.get('best_bet') else '',
+            'fs_best_odds': fs['best_bet_odds'] if fs and fs.get('best_bet_odds') else '',
+            'fs_home_str': fs['_home_strength'] if fs and fs.get('_home_strength') is not None else '',
+            'fs_away_str': fs['_away_strength'] if fs and fs.get('_away_strength') is not None else '',
+        }
+
+        # Consensus: check if all available sources agree on result
+        results = []
+        if our and our.get('Pred_FTR'):
+            results.append(our['Pred_FTR'])
+        if fb and fb.get('pred_result'):
+            results.append(fb['pred_result'])
+        if fs and fs.get('pred_result'):
+            results.append(fs['pred_result'])
+        match_entry['consensus'] = len(set(results)) == 1 and len(results) >= 2
+
+        matches.append(match_entry)
+
+    # Sort: consensus picks first, then by league
+    matches.sort(key=lambda m: (not m['consensus'], m['league_name'], m['home_team']))
+
+    # Collect league options from our CSV predictions
+    leagues = sorted(set(row.get('Div', '') for row in our_preds if row.get('Div')))
+    league_options = [{'code': l, 'name': LEAGUE_NAMES.get(l, l)} for l in leagues]
+
+    return {
+        'matches': matches,
+        'total_matches': len(matches),
+        'matched_count': matched_count,
+        'forebet_count': len(forebet_data),
+        'footystats_count': len(footystats_data),
+        'our_count': len(our_preds),
+        'fetched_at': _ext_cache.get('fetched_at'),
+        'ext_refresh_running': _ext_refresh_state['running'],
+        'league_filter': league_filter,
+        'league_options': league_options,
+    }
+
+
+@login_required(login_url="/login/")
+def external_predictions(request):
+    context = _get_external_context(request)
+    context['segment'] = 'external_predictions'
+    html_template = loader.get_template('home/external_predictions.html')
+    return HttpResponse(html_template.render(context, request))
+
+
+@require_POST
+@login_required(login_url="/login/")
+def refresh_external(request):
+    """Start external predictions scraping in a background thread."""
+    if _ext_refresh_state['running']:
+        return JsonResponse({'status': 'already_running'})
+
+    _ext_refresh_state['running'] = True
+    _ext_refresh_state['error'] = None
+    thread = threading.Thread(target=_run_ext_refresh, daemon=True)
+    thread.start()
+    return JsonResponse({'status': 'started'})
+
+
+@login_required(login_url="/login/")
+def refresh_external_status(request):
+    """Poll the current state of the external predictions refresh."""
+    return JsonResponse({
+        'running': _ext_refresh_state['running'],
+        'error': _ext_refresh_state['error'],
+        'finished_at': _ext_refresh_state['finished_at'],
     })

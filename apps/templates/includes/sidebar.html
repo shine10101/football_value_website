@@ -31,6 +31,12 @@
                         <p>Methodology</p>
                     </a>
                 </li>
+                <li class="{% if 'external_predictions' in segment %} active {% endif %}">
+                    <a href="/external/">
+                        <i class="tim-icons icon-world"></i>
+                        <p>External Predictions</p>
+                    </a>
+                </li>
                 <li class="{% if 'performance' in segment %} active {% endif %}">
                     <a data-toggle="collapse" href="#performanceSubmenu">
                         <i class="tim-icons icon-trophy"></i>

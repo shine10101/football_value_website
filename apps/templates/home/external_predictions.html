@@ -1,0 +1,290 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} External Predictions {% endblock %}
+
+{% block stylesheets %}
+<style>
+    .source-ours { background: rgba(225, 78, 202, 0.1); }
+    .source-forebet { background: rgba(0, 242, 195, 0.1); }
+    .source-footystats { background: rgba(29, 140, 248, 0.1); }
+    .source-header-ours { background: rgba(225, 78, 202, 0.2); color: #e14eca; font-size: 0.75rem; text-align: center; }
+    .source-header-forebet { background: rgba(0, 242, 195, 0.2); color: #00f2c3; font-size: 0.75rem; text-align: center; }
+    .source-header-footystats { background: rgba(29, 140, 248, 0.2); color: #1d8cf8; font-size: 0.75rem; text-align: center; }
+    .table td, .table th { font-size: 0.78rem; padding: 0.4rem 0.5rem; vertical-align: middle; }
+    .consensus-badge { background: rgba(0, 242, 195, 0.25); color: #00f2c3; font-size: 0.65rem; padding: 0.2em 0.5em; border-radius: 10px; }
+    .match-info { white-space: nowrap; }
+    .match-info .teams { font-weight: 600; }
+    .match-info .meta { font-size: 0.7rem; color: rgba(255,255,255,0.5); }
+    .refresh-btn { position: relative; }
+    .refresh-btn .spinner-border { display: none; width: 1rem; height: 1rem; }
+    .refresh-btn.loading .spinner-border { display: inline-block; }
+    .refresh-btn.loading .btn-text { display: none; }
+    .stat-card { text-align: center; padding: 1rem; }
+    .stat-card .stat-value { font-size: 1.5rem; font-weight: 700; }
+    .stat-card .stat-label { font-size: 0.75rem; color: rgba(255,255,255,0.6); }
+    .strength-bar { display: inline-block; height: 6px; border-radius: 3px; vertical-align: middle; }
+    .strength-bar.home { background: #e14eca; }
+    .strength-bar.away { background: #1d8cf8; }
+    .strength-val { font-size: 0.7rem; margin: 0 2px; }
+    .tip-badge { display: inline-block; font-size: 0.7rem; padding: 0.15em 0.45em; border-radius: 8px; background: rgba(29, 140, 248, 0.2); color: #1d8cf8; white-space: nowrap; }
+    .tip-odds { font-size: 0.7rem; color: rgba(255,255,255,0.5); }
+    @media (max-width: 992px) {
+        .table .hide-tablet { display: none; }
+    }
+    @media (max-width: 768px) {
+        .table .hide-mobile { display: none; }
+        .table td, .table th { font-size: 0.7rem; padding: 0.3rem; }
+    }
+</style>
+{% endblock stylesheets %}
+
+{% block content %}
+
+  <div class="content">
+    <!-- Stats row -->
+    <div class="row">
+      <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+          <div class="card-body">
+            <div class="stat-card">
+              <div class="stat-value">{{ total_matches }}</div>
+              <div class="stat-label">Total Matches</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+          <div class="card-body">
+            <div class="stat-card">
+              <div class="stat-value">{{ matched_count }}</div>
+              <div class="stat-label">Cross-Referenced</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+          <div class="card-body">
+            <div class="stat-card">
+              <div class="stat-value">{{ forebet_count }}</div>
+              <div class="stat-label">Forebet Predictions</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+          <div class="card-body">
+            <div class="stat-card">
+              <div class="stat-value">{{ footystats_count }}</div>
+              <div class="stat-label">FootyStats Predictions</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main table -->
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+              <h4 class="card-title mb-0">
+                External Predictions
+                {% if league_filter %}
+                  <small class="text-muted">
+                    &mdash; {{ league_filter }}
+                    <a href="/external/" class="text-info ml-2" style="font-size: 0.75rem;">clear filter</a>
+                  </small>
+                {% endif %}
+              </h4>
+              <p class="text-muted mb-0" style="font-size: 0.75rem;">
+                {% if fetched_at %}
+                  Last updated: {{ fetched_at }}
+                {% else %}
+                  No data loaded. Click Refresh to fetch external predictions.
+                {% endif %}
+              </p>
+            </div>
+            <div class="d-flex align-items-center mt-2 mt-md-0">
+              <label class="mr-2 mb-0 text-muted" style="font-size: 0.8rem;">League:</label>
+              <select id="league-filter" class="form-control form-control-sm mr-3"
+                      style="width: auto; background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2);"
+                      onchange="filterLeague(this.value)">
+                <option value="">All Leagues</option>
+                {% for opt in league_options %}
+                  <option value="{{ opt.code }}" {% if league_filter == opt.code %}selected{% endif %}>
+                    {{ opt.name }}
+                  </option>
+                {% endfor %}
+              </select>
+              <button id="refresh-ext-btn" class="btn btn-sm btn-primary refresh-btn" {% if ext_refresh_running %}disabled{% endif %}>
+                <span class="btn-text"><i class="tim-icons icon-refresh-02"></i> Refresh</span>
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table tablesorter">
+                <thead class="text-primary">
+                  <tr>
+                    <th rowspan="2" style="vertical-align: bottom;">Match</th>
+                    <th colspan="4" class="source-header-ours">Our Model</th>
+                    <th colspan="4" class="source-header-forebet">Forebet</th>
+                    <th colspan="2" class="source-header-footystats hide-tablet">FootyStats</th>
+                  </tr>
+                  <tr>
+                    <!-- Our Model -->
+                    <th class="source-ours" style="font-size:0.7rem;">H%</th>
+                    <th class="source-ours" style="font-size:0.7rem;">D%</th>
+                    <th class="source-ours" style="font-size:0.7rem;">A%</th>
+                    <th class="source-ours hide-mobile" style="font-size:0.7rem;">Score</th>
+                    <!-- Forebet -->
+                    <th class="source-forebet" style="font-size:0.7rem;">H%</th>
+                    <th class="source-forebet" style="font-size:0.7rem;">D%</th>
+                    <th class="source-forebet" style="font-size:0.7rem;">A%</th>
+                    <th class="source-forebet hide-mobile" style="font-size:0.7rem;">Score</th>
+                    <!-- FootyStats -->
+                    <th class="source-footystats hide-tablet" style="font-size:0.7rem;">Strength</th>
+                    <th class="source-footystats hide-tablet" style="font-size:0.7rem;">Tip</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for match in matches %}
+                  <tr>
+                    <td class="match-info">
+                      {% if match.consensus %}<span class="consensus-badge">CONSENSUS</span> {% endif %}
+                      <span class="teams">{{ match.home_team }}</span>
+                      <span class="text-muted"> vs </span>
+                      <span class="teams">{{ match.away_team }}</span>
+                      <br>
+                      <span class="meta">
+                        {{ match.league_name }}
+                        {% if match.date %} &middot; {{ match.date }}{% endif %}
+                        {% if match.time %} {{ match.time }}{% endif %}
+                      </span>
+                    </td>
+                    <!-- Our Model -->
+                    <td class="source-ours">{{ match.our_h_prob|default:"-" }}</td>
+                    <td class="source-ours">{{ match.our_d_prob|default:"-" }}</td>
+                    <td class="source-ours">{{ match.our_a_prob|default:"-" }}</td>
+                    <td class="source-ours hide-mobile">{{ match.our_score|default:"-" }}</td>
+                    <!-- Forebet -->
+                    <td class="source-forebet">{{ match.fb_h_prob|default:"-" }}</td>
+                    <td class="source-forebet">{{ match.fb_d_prob|default:"-" }}</td>
+                    <td class="source-forebet">{{ match.fb_a_prob|default:"-" }}</td>
+                    <td class="source-forebet hide-mobile">{{ match.fb_score|default:"-" }}</td>
+                    <!-- FootyStats: Strength -->
+                    <td class="source-footystats hide-tablet">
+                      {% if match.fs_home_str or match.fs_away_str %}
+                        <span class="strength-val" style="color: #e14eca;">{{ match.fs_home_str }}</span>
+                        <span class="text-muted">vs</span>
+                        <span class="strength-val" style="color: #1d8cf8;">{{ match.fs_away_str }}</span>
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                    <!-- FootyStats: Tip -->
+                    <td class="source-footystats hide-tablet">
+                      {% if match.fs_best_bet %}
+                        <span class="tip-badge">{{ match.fs_best_bet }}</span>
+                        {% if match.fs_best_odds %}<span class="tip-odds">@ {{ match.fs_best_odds }}</span>{% endif %}
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="11" class="text-center" style="padding: 2rem;">
+                      {% if fetched_at %}
+                        No matches found for the current filter.
+                      {% else %}
+                        No external predictions loaded yet. Click <strong>Refresh</strong> to fetch predictions from Forebet and FootyStats.
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock content %}
+
+{% block javascripts %}
+<script>
+  function filterLeague(value) {
+    var url = '/external/';
+    if (value) url += '?league=' + encodeURIComponent(value);
+    window.location.href = url;
+  }
+
+  (function() {
+    var btn = document.getElementById('refresh-ext-btn');
+    if (!btn) return;
+
+    {% if ext_refresh_running %}
+      btn.classList.add('loading');
+      btn.disabled = true;
+      pollStatus();
+    {% endif %}
+
+    btn.addEventListener('click', function() {
+      btn.classList.add('loading');
+      btn.disabled = true;
+
+      fetch('/api/refresh-external/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': getCookie('csrftoken')},
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.status === 'started' || data.status === 'already_running') {
+          pollStatus();
+        }
+      })
+      .catch(function() {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      });
+    });
+
+    function pollStatus() {
+      var interval = setInterval(function() {
+        fetch('/api/refresh-external/status/')
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (!data.running) {
+              clearInterval(interval);
+              window.location.reload();
+            }
+          });
+      }, 2000);
+    }
+
+    function getCookie(name) {
+      var cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+          var cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+  })();
+</script>
+{% endblock javascripts %}

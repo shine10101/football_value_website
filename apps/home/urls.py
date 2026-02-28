@@ -28,9 +28,16 @@ urlpatterns = [
     # Methodology
     path('methodology/', views.methodology, name='methodology'),
 
+    # External predictions
+    path('external/', views.external_predictions, name='external_predictions'),
+
     # Prediction refresh API
     path('api/refresh/', views.refresh_predictions, name='refresh_predictions'),
     path('api/refresh/status/', views.refresh_status, name='refresh_status'),
+
+    # External predictions refresh API
+    path('api/refresh-external/', views.refresh_external, name='refresh_external'),
+    path('api/refresh-external/status/', views.refresh_external_status, name='refresh_external_status'),
 
     # Matches any html file
     re_path(r'^.*\.*', views.pages, name='pages'),
