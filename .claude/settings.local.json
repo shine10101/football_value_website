@@ -7,7 +7,9 @@
       "Bash(ls:*)",
       "Bash(venv/Scripts/python.exe manage.py makemigrations:*)",
       "Bash(c:/Users/pshin/VSCode/football_value_website/venv/Scripts/python.exe --version)",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "Bash(curl -s -I \"https://www.football-data.co.uk/fixtures.csv\")",
+      "Bash(source venv/Scripts/activate)"
     ]
   }
 }

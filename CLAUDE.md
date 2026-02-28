@@ -31,6 +31,14 @@ python manage.py resolve_results
 
 # Backcast historical predictions for performance data
 python manage.py backcast --leagues E0 E1 --season 2526 --min-games 10
+
+# Run AI development agents
+python manage.py agent test "write tests for strategies.py"
+python manage.py agent review "check views.py for N+1 queries"
+python manage.py agent pipeline --validate-csv
+python manage.py agent pipeline --check-accuracy --league E0
+python manage.py agent feature "add CSV export to performance page"
+python manage.py agent test --coverage
 ```
 
 ### Docker / Production
@@ -65,8 +73,28 @@ This is a **Django 4.2** web app built on the [Black Dashboard](https://www.crea
 - `management/commands/` — custom Django management commands:
   - `resolve_results.py` — `python manage.py resolve_results` fetches historical data and resolves unresolved predictions.
   - `backcast.py` — `python manage.py backcast [--leagues E0 E1] [--season 2526] [--min-games 10]` walks historical matches chronologically, generating predictions using only data available at the time, and saves them as resolved `Prediction` objects for the performance page.
+  - `agent.py` — `python manage.py agent <type> <task>` runs AI development agents (see Agents section below).
 
 **`apps/authentication/`** — session-based login/register (Django built-in auth).
+
+### Agents (`agents/`)
+
+A multi-agent framework built on the **Claude Agent SDK** for AI-assisted development. Four specialized agent types, each with distinct tools, permissions, and system prompts:
+
+- **`test`** — Writes and runs Django unit tests. Has write access to all files. Max 80 turns.
+- **`review`** — Read-only code quality reviews (security, performance, N+1 queries, thread safety). Max 30 turns.
+- **`pipeline`** — Validates data quality, monitors pipeline health, analyzes prediction accuracy. Can write CSV/data files but not code. Has custom MCP tools for DB queries and CSV validation. Max 40 turns.
+- **`feature`** — Implements new features and refactors code. Full bash access but cannot write `.env`, `.env.production`, or `db.sqlite3`. Max 100 turns.
+
+Key files:
+- `cli.py` — Direct CLI entry point (`python agents/cli.py <agent> <task>`)
+- `definitions.py` — Agent execution engine using Claude Agent SDK async queries
+- `config.py` — Per-agent tool and permission configuration
+- `hooks.py` — Safety validation (blocks destructive commands, protects secrets, enforces write restrictions)
+- `prompts/` — Specialized system prompts for each agent type
+- `tools/` — Custom MCP server (`football-value-tools`) exposing `validate_predictions_csv`, `check_data_source_availability`, `get_prediction_stats`, `get_recent_predictions`, `get_team_performance`
+
+All agents share safety rules: no access to secret files, no destructive git/shell commands. Options: `--model`, `--verbose`, `--permission-mode`.
 
 ### Templates (`apps/templates/`)
 - `layouts/base.html` — base layout for authenticated pages (Black Dashboard theme).
