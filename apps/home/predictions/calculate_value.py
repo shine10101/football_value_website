@@ -15,9 +15,13 @@ def value(predictions):
 
     odds = predictions[['Odds_H', 'Odds_D', 'Odds_A']]
     implied_odds = 1 / odds
+    # Remove bookmaker overround so implied probs sum to 1.0.
+    # Raw implied probs typically sum to ~1.05-1.08 due to the margin.
+    overround = implied_odds.sum(axis=1)
+    implied_fair = implied_odds.div(overround, axis=0)
     probability = predictions[['HWin', 'Draw', 'AWin']]
     val = pd.DataFrame(
-        probability.values - implied_odds.values,
+        probability.values - implied_fair.values,
         columns=['Home Win', 'Draw', 'Away Win'],
     )
     predictions['Max_Value'] = val.max(axis=1).values
@@ -33,8 +37,12 @@ def value(predictions):
     if 'Avg>2.5' in predictions.columns and 'Avg<2.5' in predictions.columns:
         over_odds = pd.to_numeric(predictions['Avg>2.5'], errors='coerce')
         under_odds = pd.to_numeric(predictions['Avg<2.5'], errors='coerce')
-        predictions['Over25_Value'] = predictions['Over25'] - (1 / over_odds)
-        predictions['Under25_Value'] = predictions['Under25'] - (1 / under_odds)
+        # Remove overround from O/U odds too
+        ou_overround = (1 / over_odds) + (1 / under_odds)
+        implied_over_fair = (1 / over_odds) / ou_overround
+        implied_under_fair = (1 / under_odds) / ou_overround
+        predictions['Over25_Value'] = predictions['Over25'] - implied_over_fair
+        predictions['Under25_Value'] = predictions['Under25'] - implied_under_fair
         predictions['Odds_Over25'] = over_odds
         predictions['Odds_Under25'] = under_odds
     else:

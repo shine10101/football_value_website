@@ -3,36 +3,93 @@ from scipy.stats import poisson
 import numpy as np
 
 
+# Dixon-Coles correlation parameter for low-scoring outcomes.
+# Set to 0.0 (disabled) — with single-season training data (~20 games/team),
+# the correction adds noise. Re-enable with multi-season data.
+DC_RHO = 0.0
+
+# Exponential decay rate per match for recent-form weighting.
+# 0.995 gives mild recency bias: a match 100 games ago has weight 0.61.
+DECAY_RATE = 0.995
+
+
+def _dixon_coles_adj(score1, score2, htge, atge, rho):
+    """Apply Dixon-Coles correction factor for low-scoring outcomes (0 or 1 goals).
+
+    Returns a multiplier to adjust the independent Poisson probability for
+    scorelines where both teams score 0 or 1.
+    """
+    if score1 == 0 and score2 == 0:
+        return 1 - htge * atge * rho
+    elif score1 == 0 and score2 == 1:
+        return 1 + htge * rho
+    elif score1 == 1 and score2 == 0:
+        return 1 + atge * rho
+    elif score1 == 1 and score2 == 1:
+        return 1 - rho
+    return 1.0
+
+
+def _weighted_mean(values, weights):
+    """Compute weighted mean, falling back to simple mean if weights sum to 0."""
+    w_sum = weights.sum()
+    if w_sum == 0:
+        return values.mean()
+    return (values * weights).sum() / w_sum
+
+
 def analysis(Train, Test):
-    """Run Poisson distribution analysis on training data to predict Test fixtures."""
+    """Run Poisson distribution analysis on training data to predict Test fixtures.
+
+    Improvements over basic Poisson:
+    1. Exponential decay weighting — recent matches influence team strength more.
+    2. Dixon-Coles adjustment — corrects correlated low-scoring probabilities.
+    """
     teams = pd.DataFrame(sorted(Train.HomeTeam.unique()))
+
+    # Assign exponential decay weights: most recent match gets weight 1.0,
+    # each older match is multiplied by DECAY_RATE.
+    train_sorted = Train.sort_values('Date').reset_index(drop=True)
+    n = len(train_sorted)
+    weights = pd.Series([DECAY_RATE ** (n - 1 - i) for i in range(n)])
+    train_sorted = train_sorted.copy()
+    train_sorted['_weight'] = weights.values
+
     home_form = []
     away_form = []
 
     for team in teams[0]:
-        HF = []
-        AF = []
+        # Home matches
+        mask_h = train_sorted['HomeTeam'] == team
+        h_matches = train_sorted[mask_h]
+        h_count = len(h_matches)
+        if h_count > 0:
+            h_goals_for = _weighted_mean(h_matches['FTHG'], h_matches['_weight'])
+            h_goals_against = _weighted_mean(h_matches['FTAG'], h_matches['_weight'])
+        else:
+            h_goals_for = 0.0
+            h_goals_against = 0.0
 
-        HF.append(len(Train[Train['HomeTeam'] == team]))
-        HF.append(sum(Train['FTHG'][Train['HomeTeam'] == team]))
-        HF.append(Train['FTHG'][Train['HomeTeam'] == team].mean())
-        HF.append(sum(Train['FTAG'][Train['HomeTeam'] == team]))
-        HF.append(Train['FTAG'][Train['HomeTeam'] == team].mean())
+        home_form.append([h_count, h_goals_for, h_goals_against])
 
-        AF.append(len(Train[Train['AwayTeam'] == team]))
-        AF.append(sum(Train['FTAG'][Train['AwayTeam'] == team]))
-        AF.append(Train['FTAG'][Train['AwayTeam'] == team].mean())
-        AF.append(sum(Train['FTHG'][Train['AwayTeam'] == team]))
-        AF.append(Train['FTHG'][Train['AwayTeam'] == team].mean())
+        # Away matches
+        mask_a = train_sorted['AwayTeam'] == team
+        a_matches = train_sorted[mask_a]
+        a_count = len(a_matches)
+        if a_count > 0:
+            a_goals_for = _weighted_mean(a_matches['FTAG'], a_matches['_weight'])
+            a_goals_against = _weighted_mean(a_matches['FTHG'], a_matches['_weight'])
+        else:
+            a_goals_for = 0.0
+            a_goals_against = 0.0
 
-        home_form.append(HF)
-        away_form.append(AF)
+        away_form.append([a_count, a_goals_for, a_goals_against])
 
     home_form = pd.DataFrame(home_form, columns=[
-        'GamesplayedH', 'GoalsforH', 'AvggoalsforH', 'GoalsagainstH', 'AvggoalsagainstH',
+        'GamesplayedH', 'AvggoalsforH', 'AvggoalsagainstH',
     ])
     away_form = pd.DataFrame(away_form, columns=[
-        'GamesplayedA', 'GoalsforA', 'AvggoalsforA', 'GoalsagainstA', 'AvggoalsagainstA',
+        'GamesplayedA', 'AvggoalsforA', 'AvggoalsagainstA',
     ])
 
     median_avg_H = home_form.median()
@@ -75,18 +132,26 @@ def analysis(Train, Test):
 
     for index, row in Test.iterrows():
         scores = np.zeros((10, 10))
-        for score1 in range(0, 10):
-            for score2 in range(0, 10):
-                scores[score1, score2] = (
-                    poisson.pmf(score1, row['HTGE']) * poisson.pmf(score2, row['ATGE'])
-                )
+        htge = row['HTGE']
+        atge = row['ATGE']
+
+        for score1 in range(10):
+            for score2 in range(10):
+                p = poisson.pmf(score1, htge) * poisson.pmf(score2, atge)
+                # Dixon-Coles adjustment for low-scoring outcomes
+                p *= _dixon_coles_adj(score1, score2, htge, atge, DC_RHO)
+                scores[score1, score2] = max(p, 0)  # guard against negative
+
+        # Renormalise so the matrix sums to 1.0
+        total = scores.sum()
+        if total > 0:
+            scores /= total
 
         draw.append(sum(np.diag(scores)))
         HWin.append(sum(sum(np.tril(scores))) - sum(np.diag(scores)))
         AWin.append(sum(sum(np.triu(scores))) - sum(np.diag(scores)))
 
         # BTTS: probability both teams score at least 1 goal
-        # Exclude row 0 (home=0) and column 0 (away=0)
         btts_yes.append(scores[1:, 1:].sum())
 
         # Over 2.5 goals: sum of cells where home + away > 2
@@ -110,12 +175,10 @@ def analysis(Train, Test):
     Test['Under25'] = [1 - o for o in over25_list]
     Test['Pred_FTHG'] = phg
     Test['Pred_FTAG'] = pag
-    Test['Pred_FTR'] = np.nan
-    Test['Pred_FTR'] = (
-        Test['Pred_FTR']
-        .mask(Test.Pred_FTHG == Test.Pred_FTAG, "D")
-        .mask(Test.Pred_FTHG > Test.Pred_FTAG, "H")
-        .mask(Test.Pred_FTHG < Test.Pred_FTAG, "A")
-    )
+    # Determine predicted result from outcome probabilities (not mode scoreline).
+    # Using HWin/Draw/AWin is more accurate than comparing Pred_FTHG vs Pred_FTAG
+    # because the most-likely scoreline can disagree with the most-likely outcome.
+    outcome_probs = pd.DataFrame({'H': HWin, 'D': draw, 'A': AWin})
+    Test['Pred_FTR'] = outcome_probs.idxmax(axis=1).values
 
     return Test

@@ -212,8 +212,17 @@
                         goal-scoring because goals are relatively rare, independent events within a match.
                     </p>
 
+                    <h5>Recent-Form Weighting</h5>
+                    <p>
+                        Rather than treating all matches equally, the model applies <strong style="color: #fff;">exponential decay weighting</strong>
+                        so that recent results have more influence on team strength estimates. Each match is weighted by
+                        a factor of 0.995<sup>age</sup>, where age is the number of matches since that game was played.
+                        This means a match from 100 games ago carries about 61% of the weight of the most recent match,
+                        allowing the model to adapt to changes in team form throughout the season.
+                    </p>
+
                     <h5>Team Strength Ratings</h5>
-                    <p>For each team in a league, four strength metrics are calculated from current-season results:</p>
+                    <p>For each team in a league, four strength metrics are calculated from current-season results (using decay-weighted averages):</p>
                     <div class="step-row">
                         <span class="step-number">1</span>
                         <p><strong style="color: #fff;">Home Attack Strength</strong> &mdash; the team's average home goals scored, divided by the league median. A value above 1.0 means the team scores more than the typical team at home.</p>
@@ -269,11 +278,18 @@
                         <li><strong style="color: #fff;">Over/Under 2.5 Goals</strong> &mdash; probability of more than 2.5 total goals. Calculated by summing all cells where home + away &gt; 2.</li>
                     </ul>
 
-                    <h5>Predicted Scoreline</h5>
+                    <h5>Predicted Result</h5>
                     <p>
-                        The <strong style="color: #fff;">most likely scoreline</strong> (the mode of the score matrix) is used as
-                        the predicted full-time score. The predicted match result (H/D/A) follows directly from comparing
-                        the predicted home and away goals.
+                        The predicted match result (H/D/A) is determined by which outcome &mdash; Home Win, Draw, or
+                        Away Win &mdash; has the <strong style="color: #fff;">highest summed probability</strong> from the
+                        score matrix. This is more accurate than using the most likely scoreline (mode), because the
+                        mode can disagree with the most probable outcome. For example, a 1-1 scoreline might be the
+                        single most likely score, but the sum of all home-win scorelines could still exceed the sum
+                        of all draw scorelines.
+                    </p>
+                    <p>
+                        The <strong style="color: #fff;">predicted scoreline</strong> (the mode of the score matrix) is
+                        still displayed as a secondary indicator but does not drive the H/D/A prediction.
                     </p>
                 </div>
             </div>
@@ -300,21 +316,29 @@
                     </div>
                     <div class="step-row">
                         <span class="step-number">2</span>
-                        <p><strong style="color: #fff;">Convert to implied probability</strong> &mdash; bookmaker odds are converted to implied probabilities:</p>
+                        <p><strong style="color: #fff;">Convert to implied probability</strong> &mdash; bookmaker odds are converted to raw implied probabilities:</p>
                     </div>
                     <div class="formula-box">
-                        Implied Probability = 1 / Decimal Odds
+                        Raw Implied Probability = 1 / Decimal Odds
                     </div>
                     <div class="step-row">
                         <span class="step-number">3</span>
-                        <p><strong style="color: #fff;">Calculate value</strong> &mdash; value is the difference between the model's probability and the implied probability for each outcome (Home Win, Draw, Away Win):</p>
+                        <p><strong style="color: #fff;">Remove the overround (margin correction)</strong> &mdash; raw implied probabilities from bookmakers typically sum to ~105&ndash;108% rather than 100%, because the bookmaker builds in a profit margin (overround). We normalise implied probabilities to sum to exactly 100% so the model is compared against fair probabilities, not inflated ones:</p>
                     </div>
                     <div class="formula-box">
-                        Value = Model Probability &minus; Implied Probability
+                        Overround = &sum; Raw Implied Probabilities &nbsp; (typically ~1.05&ndash;1.08)<br>
+                        Fair Implied Probability = Raw Implied Probability / Overround
                     </div>
                     <div class="step-row">
                         <span class="step-number">4</span>
-                        <p><strong style="color: #fff;">Identify best value</strong> &mdash; the outcome with the highest value is selected. A positive value means the model believes the event is more likely than the odds suggest.</p>
+                        <p><strong style="color: #fff;">Calculate value</strong> &mdash; value is the difference between the model's probability and the fair implied probability for each outcome (Home Win, Draw, Away Win):</p>
+                    </div>
+                    <div class="formula-box">
+                        Value = Model Probability &minus; Fair Implied Probability
+                    </div>
+                    <div class="step-row">
+                        <span class="step-number">5</span>
+                        <p><strong style="color: #fff;">Identify best value</strong> &mdash; the outcome with the highest value is selected. A positive value means the model believes the event is more likely than the fair odds suggest.</p>
                     </div>
 
                     <h5>Over/Under 2.5 Value</h5>
@@ -373,9 +397,10 @@
                 <div class="card-body methodology-section">
                     <h4><i class="tim-icons icon-alert-circle-exc" style="margin-right: 8px;"></i> 5. Limitations &amp; Considerations</h4>
                     <ul>
-                        <li><strong style="color: #fff;">Season data only</strong> &mdash; the model trains on current-season results, so early-season predictions (few matches played) will have higher uncertainty.</li>
+                        <li><strong style="color: #fff;">Season data only</strong> &mdash; the model trains on current-season results with recent-form weighting, so early-season predictions (few matches played) will have higher uncertainty.</li>
                         <li><strong style="color: #fff;">No contextual factors</strong> &mdash; the model does not account for injuries, suspensions, managerial changes, weather, or motivation (e.g. relegation battles). It is a purely statistical model based on goals scored and conceded.</li>
-                        <li><strong style="color: #fff;">Independence assumption</strong> &mdash; the Poisson model assumes home and away goals are independent. In practice, match dynamics (e.g. a team going a goal down may push forward) can create some dependency between the two.</li>
+                        <li><strong style="color: #fff;">Independence assumption</strong> &mdash; the Poisson model assumes home and away goals are independent. A Dixon-Coles correction for low-scoring correlation is available but currently disabled due to limited single-season sample sizes. It may be re-enabled once multi-season training data is supported.</li>
+                        <li><strong style="color: #fff;">Overround removal is approximate</strong> &mdash; the margin correction assumes the bookmaker's overround is spread equally across all outcomes. In practice, bookmakers may apply more margin to less likely outcomes (favourite-longshot bias).</li>
                         <li><strong style="color: #fff;">Not financial advice</strong> &mdash; positive expected value does not guarantee profit on any individual bet. Value betting is a long-term strategy that requires a large sample of bets to converge toward expected returns.</li>
                     </ul>
                 </div>

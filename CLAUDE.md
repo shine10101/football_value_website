@@ -118,6 +118,12 @@ All agents share safety rules: no access to secret files, no destructive git/she
 - `/api/refresh/` (POST) — Trigger prediction pipeline
 - `/api/refresh/status/` (GET) — Poll pipeline progress
 
+### Date formats (IMPORTANT)
+- **`predictions.csv`** uses `YYYY-MM-DD` format (ISO 8601), written by the pipeline via `pd.to_csv()`.
+- **External source CSVs** (football-data.co.uk) use `DD/MM/YYYY` format, parsed with `date_format='%d/%m/%Y'` in `data_ingestion._fetch_csv()`.
+- **Views date filtering** (`views.py:_load_predictions`) parses CSV dates without `dayfirst=True` since the CSV is ISO format. Do NOT add `dayfirst=True` — it will misparse `YYYY-MM-DD` dates (e.g., `2026-02-28` becomes Jan 3 or NaT).
+- When adding any date parsing, always check the source format first. Mixing `dayfirst=True` with ISO dates is a common bug.
+
 ### Key data flow
 1. `predictions.csv` is pre-generated (or refreshed via `/api/refresh/`) and read directly by views for the dashboard and tables pages.
 2. The CSV columns used: `Div`, `Date`, `Time`, `HomeTeam`, `AwayTeam`, `HWin`, `Draw`, `AWin`, `Pred_FTR`, `Max_Value`, `Max_Value_Result`, `Pred_FTHG`, `Pred_FTAG`.
