@@ -288,7 +288,7 @@ def _load_predictions():
         # Filter out past predictions (games that have already taken place)
         if 'Date' in df.columns:
             today = datetime.date.today()
-            parsed_dates = pd.to_datetime(df['Date'], dayfirst=True, errors='coerce').dt.date
+            parsed_dates = pd.to_datetime(df['Date'], errors='coerce').dt.date
             df = df[parsed_dates >= today].reset_index(drop=True)
 
         # Add league names
